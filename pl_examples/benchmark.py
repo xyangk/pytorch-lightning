@@ -96,9 +96,9 @@ if __name__ == "__main__":
         # dict(trials=5, max_epochs=50, num_layers=10),
         # dict(trials=5, max_epochs=50, num_layers=100),
         dict(trials=5, max_epochs=50, num_workers=1),
-        dict(trials=5, max_epochs=50, num_layers=2),
+        dict(trials=5, max_epochs=50, num_workers=2),
         dict(trials=5, max_epochs=50, num_workers=3),
-        dict(trials=5, max_epochs=50, num_layers=8),
+        dict(trials=5, max_epochs=50, num_workers=8),
     ]
 
     results = []
