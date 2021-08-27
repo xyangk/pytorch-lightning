@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Dataset
 
-from pytorch_lightning import LightningModule, Trainer
+from pytorch_lightning import LightningModule, Trainer, LightningDataModule
 
 
 class RandomDataset(Dataset):
@@ -44,25 +44,36 @@ class BoringModel(LightningModule):
         return torch.optim.SGD(self.layers.parameters(), lr=0.1)
 
 
+class BoringDataModule(LightningDataModule):
+    def __init__(self, input_size, num_workers):
+        super().__init__()
+        self.input_size = input_size
+        self.num_workers = num_workers
+
+    def train_dataloader(self):
+        return DataLoader(RandomDataset(self.input_size, 64), batch_size=2, num_workers=self.num_workers)
+
+    def val_dataloader(self):
+        return DataLoader(RandomDataset(self.input_size, 64), batch_size=2, num_workers=self.num_workers)
+
+
 def run(enabled=False, max_epochs=20, checkpointing=False, input_size=32, num_layers=1, num_workers=0, **trainer_args):
     os.environ["PL_FAULT_TOLERANT_TRAINING"] = str(int(enabled))
     start = time.monotonic()
 
-    train_data = DataLoader(RandomDataset(input_size, 64), batch_size=2, num_workers=num_workers)
-    val_data = DataLoader(RandomDataset(input_size, 64), batch_size=2, num_workers=num_workers)
-
     model = BoringModel(input_size=input_size, num_layers=num_layers)
+    datamodule = BoringDataModule(input_size, num_workers)
     trainer = Trainer(
         default_root_dir=os.getcwd(),
         num_sanity_val_steps=0,
         max_epochs=max_epochs,
         progress_bar_refresh_rate=0,
-        weights_summary=None,
+        # weights_summary=None,
         logger=False,
         checkpoint_callback=checkpointing,
         **trainer_args,
     )
-    trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
+    trainer.fit(model, datamodule=datamodule)
 
     duration = time.monotonic() - start
     return duration
@@ -95,10 +106,10 @@ if __name__ == "__main__":
         # dict(trials=5, max_epochs=50, num_layers=1),
         # dict(trials=5, max_epochs=50, num_layers=10),
         # dict(trials=5, max_epochs=50, num_layers=100),
-        dict(trials=5, max_epochs=50, num_workers=1),
-        dict(trials=5, max_epochs=50, num_workers=2),
-        dict(trials=5, max_epochs=50, num_workers=3),
-        dict(trials=5, max_epochs=50, num_workers=8),
+        dict(trials=5, max_epochs=5, num_workers=1),
+        dict(trials=5, max_epochs=5, num_workers=2),
+        dict(trials=5, max_epochs=5, num_workers=3),
+        dict(trials=5, max_epochs=5, num_workers=8),
     ]
 
     results = []
