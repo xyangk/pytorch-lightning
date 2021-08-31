@@ -259,12 +259,12 @@ def benchmark(trials=1, **settings):
 if __name__ == "__main__":
     gpu = torch.cuda.is_available()
     experiments = [
-        dict(trials=5, max_epochs=50, checkpointing=False),
-        dict(trials=5, max_epochs=50, checkpointing=True),
-        dict(trials=5, max_epochs=5, num_workers=1),
-        dict(trials=5, max_epochs=5, num_workers=2),
-        dict(trials=5, max_epochs=5, num_workers=3),
-        dict(trials=5, max_epochs=5, num_workers=8),
+        dict(trials=5, max_epochs=2, checkpointing=False),
+        dict(trials=5, max_epochs=2, checkpointing=True),
+        dict(trials=5, max_epochs=2, num_workers=1),
+        dict(trials=5, max_epochs=2, num_workers=2),
+        dict(trials=5, max_epochs=2, num_workers=3),
+        dict(trials=5, max_epochs=2, num_workers=8),
     ]
 
     results = []
