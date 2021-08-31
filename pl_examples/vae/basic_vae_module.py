@@ -231,6 +231,7 @@ def run(enabled=False, max_epochs=20, checkpointing=False, num_workers=0, **trai
         max_epochs=max_epochs,
         logger=False,
         checkpoint_callback=checkpointing,
+        limit_train_batches=25,
         **trainer_args,
     )
     trainer.fit(model, datamodule=dm)
