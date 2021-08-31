@@ -229,7 +229,6 @@ def run(enabled=False, max_epochs=20, checkpointing=False, num_workers=0, **trai
         default_root_dir=os.getcwd(),
         num_sanity_val_steps=0,
         max_epochs=max_epochs,
-        progress_bar_refresh_rate=0,
         logger=False,
         checkpoint_callback=checkpointing,
         **trainer_args,
