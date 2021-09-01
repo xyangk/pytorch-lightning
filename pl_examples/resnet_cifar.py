@@ -78,6 +78,7 @@ def run(enabled=False, max_epochs=20, checkpointing=False, num_workers=0, **trai
         logger=False,
         checkpoint_callback=checkpointing,
         limit_train_batches=10,
+        limit_val_batches=10,
         **trainer_args,
     )
     trainer.fit(model, datamodule=dm)
