@@ -108,8 +108,8 @@ if __name__ == "__main__":
     experiments = [
         # dict(trials=5, max_epochs=2, checkpointing=False),
         # dict(trials=5, max_epochs=2, checkpointing=True),
-        dict(trials=5, max_epochs=2, num_workers=4),
         dict(trials=5, max_epochs=2, num_workers=5),
+        dict(trials=5, max_epochs=2, num_workers=4),
         dict(trials=5, max_epochs=2, num_workers=6),
         dict(trials=5, max_epochs=2, num_workers=7),
         dict(trials=5, max_epochs=2, num_workers=0),
