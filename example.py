@@ -4,6 +4,7 @@ from typing import Optional
 import numpy as np
 from torch import nn, optim
 from torch.utils.data.dataloader import DataLoader
+from torch.utils.data._utils.collate import default_collate
 from torch.utils.data.dataset import IterableDataset
 import pytorch_lightning as pl
 from torchmetrics.functional import accuracy
@@ -29,7 +30,7 @@ class LitMAML(pl.LightningModule):
         train_loss, train_accuracy = self.meta_learn(batch, batch_idx)
         values = {'train_loss':train_loss.item(), 'train_accuracy':train_accuracy.item()}
         self.log_dict(values, prog_bar = True)
-        return train_loss.item()
+        return train_loss
         
     def validation_step(self, batch, batch_idx):
         valid_loss, valid_accuracy = self.meta_learn(batch, batch_idx)
@@ -50,13 +51,14 @@ class LitMAML(pl.LightningModule):
     @torch.enable_grad()
     def meta_learn(self, batch, batch_idx):
         learner = self.classifier.clone()
-        data, labels = batch
 
-        print(data, labels, self.shots, self.ways)
+        data, labels = batch
+        data = data[0]
+        labels = labels[0]
 
         # Seperate data into adaptation and evaluation sets
         adaptation_indices = np.zeros(data.size(0), dtype = bool)
-        adaptation_indices[np.arange(self.shots * self.ways)*2] = True
+        adaptation_indices[np.arange(self.shots * self.ways) * 2] = True
         evaluation_indices = torch.from_numpy(~adaptation_indices)
         adaptation_indices = torch.from_numpy(adaptation_indices)
         adaptation_data, adaptation_labels = data[adaptation_indices], labels[adaptation_indices]
@@ -74,6 +76,9 @@ class LitMAML(pl.LightningModule):
         valid_error /= len(evaluation_data)
         valid_accuracy = accuracy(predictions, evaluation_labels)
         return valid_error, valid_accuracy
+
+    def training_epoch_end(self, outputs) -> None:
+        print(self.trainer.current_epoch)
 
 class TaskDataParallel(IterableDataset):
 
@@ -94,6 +99,7 @@ class TaskDataParallel(IterableDataset):
         self.epoch_length = epoch_length
         self.seed = seed
         self.iteration = 0
+        self.iteration = 0
 
         if epoch_length % self.worker_world_size != 0:
             raise MisconfigurationException("The `epoch_lenght` should be divisible by `world_size`.")
@@ -108,9 +114,6 @@ class TaskDataParallel(IterableDataset):
         is_global_zero = self.global_rank == 0
         return self.global_rank + self.worker_id + int(not is_global_zero)
 
-    def __len__(self):
-        return self.epoch_length // self.world_size
-
     def __iter__(self):
         self.iteration += 1
         pl.seed_everything(self.seed + self.iteration)
@@ -121,6 +124,7 @@ class TaskDataParallel(IterableDataset):
         for _ in range(self.worker_world_size):
             task_descriptions.append(self.taskset.sample_task_description())
 
+        # TODO: Remove those 2 lines, used only for verification
         for task_description in task_descriptions:
             print(self.worker_rank, self.taskset.get_task(task_description)[1])
 
@@ -170,8 +174,21 @@ class EpisodicBatcher(pl.LightningDataModule):
                 epoch_length=self.epoch_length,
                 seed=self.seed)
 
+            # set `accumulate_grad_batches`
+            self.trainer.accumulate_grad_batches = self.epoch_length / (self.trainer.world_size * self.num_workers)
+
+    @staticmethod
+    def _collate_fn(x):
+        return default_collate(x)
+
     def train_dataloader(self):
-        return DataLoader(self.train_tasks_parallel, num_workers=self.num_workers)
+        return DataLoader(
+            self.train_tasks_parallel,
+            num_workers=self.num_workers,
+            collate_fn=self._collate_fn,
+            persistent_workers=True, # required to make sure iteration is conserved.
+        )
+        
         
     def val_dataloader(self):
         pass
@@ -202,9 +219,9 @@ def main(
     
     # init model
     maml = LitMAML(adapt_steps, shots, ways, meta_lr, fast_lr, classifier)
-    
+
     episodic_data = EpisodicBatcher(tasksets.train, tasksets.validation, tasksets.test, epoch_length = 4)
-    trainer = pl.Trainer(fast_dev_run=True, gpus = 2, accelerator = 'ddp')
+    trainer = pl.Trainer(limit_train_batches=2, max_epochs=2, gpus = 1, plugins=DDPPlugin(find_unused_parameters=False))
     trainer.fit(maml, episodic_data)	
 
 
@@ -212,3 +229,39 @@ if __name__ == '__main__':
 	t1 = time.time()
 	main()
 	print("Time taken for training:", time.time() - t1)
+
+
+""" When filtering, here are the sampled indices: Pre-fetching is applied, so ignore extra ones.
+0 tensor([2, 2, 4, 4, 1, 1, 0, 0, 3, 3])
+0 tensor([1, 1, 4, 4, 2, 2, 0, 0, 3, 3])
+0 tensor([1, 1, 2, 2, 4, 4, 0, 0, 3, 3])
+0 tensor([4, 4, 3, 3, 2, 2, 1, 1, 0, 0])
+0 tensor([3, 3, 1, 1, 2, 2, 4, 4, 0, 0])
+0 tensor([2, 2, 0, 0, 1, 1, 3, 3, 4, 4])
+0 tensor([1, 1, 4, 4, 2, 2, 3, 3, 0, 0])
+0 tensor([0, 0, 4, 4, 2, 2, 3, 3, 1, 1])
+
+1 tensor([2, 2, 4, 4, 1, 1, 0, 0, 3, 3])
+1 tensor([1, 1, 4, 4, 2, 2, 0, 0, 3, 3])
+1 tensor([1, 1, 2, 2, 4, 4, 0, 0, 3, 3])
+1 tensor([4, 4, 3, 3, 2, 2, 1, 1, 0, 0])
+1 tensor([3, 3, 1, 1, 2, 2, 4, 4, 0, 0])
+1 tensor([2, 2, 0, 0, 1, 1, 3, 3, 4, 4])
+
+
+0 tensor([0, 0, 4, 4, 1, 1, 3, 3, 2, 2])
+0 tensor([0, 0, 1, 1, 3, 3, 4, 4, 2, 2])
+0 tensor([2, 2, 1, 1, 4, 4, 0, 0, 3, 3])
+0 tensor([4, 4, 1, 1, 2, 2, 3, 3, 0, 0])
+0 tensor([1, 1, 3, 3, 2, 2, 4, 4, 0, 0])
+0 tensor([1, 1, 4, 4, 0, 0, 2, 2, 3, 3])
+
+1 tensor([0, 0, 4, 4, 1, 1, 3, 3, 2, 2])
+1 tensor([0, 0, 1, 1, 3, 3, 4, 4, 2, 2])
+1 tensor([2, 2, 1, 1, 4, 4, 0, 0, 3, 3])
+1 tensor([4, 4, 1, 1, 2, 2, 3, 3, 0, 0])
+1 tensor([1, 1, 3, 3, 2, 2, 4, 4, 0, 0])
+1 tensor([1, 1, 4, 4, 0, 0, 2, 2, 3, 3])
+1 tensor([0, 0, 1, 1, 3, 3, 2, 2, 4, 4])
+1 tensor([3, 3, 4, 4, 1, 1, 2, 2, 0, 0])
+"""
