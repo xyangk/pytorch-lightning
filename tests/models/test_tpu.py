@@ -473,3 +473,15 @@ def test_tpu_host_world_size(tmpdir):
 
     model = DebugModel()
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
+
+
+@RunIf(tpu=True)
+@pl_multi_process_test
+def test_tpu_multi_node(tmpdir):
+    """Test tpu spawn reduce operation."""
+
+    # Train a model on TPU
+    model = BoringModel()
+    trainer = Trainer(max_epochs=2, num_nodes=4, tpu_cores=8, default_root_dir=tmpdir)
+    trainer.fit(model)
+    assert trainer.state.finished, f"Training failed with {trainer.state}"
