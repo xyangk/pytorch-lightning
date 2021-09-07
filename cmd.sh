@@ -1,4 +1,6 @@
 
+#!/bin/bash
+
 git clone https://github.com/PyTorchLightning/pytorch-lightning
 cd pytorch-lightning
 git fetch --all

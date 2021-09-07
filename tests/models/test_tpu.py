@@ -482,6 +482,6 @@ def test_tpu_multi_pod(tmpdir):
 
     # Train a model on TPU
     model = BoringModel()
-    trainer = Trainer(max_epochs=1, tpu_cores=32, default_root_dir=tmpdir, fast_dev_run=True, checkpoint_callback=False)
+    trainer = Trainer(max_epochs=1, tpu_cores=8, default_root_dir=tmpdir, fast_dev_run=True, checkpoint_callback=False)
     trainer.fit(model)
     assert trainer.state.finished, f"Training failed with {trainer.state}"
