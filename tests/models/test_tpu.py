@@ -475,8 +475,8 @@ def test_tpu_host_world_size(tmpdir):
     tpipes.run_model_test(trainer_options, model, on_gpu=False, with_hpc=False)
 
 
-@RunIf(tpu=True)
-@pl_multi_process_test
+# @RunIf(tpu=True)
+# @pl_multi_process_test
 def test_tpu_multi_pod(tmpdir):
     """Ensure that model trains properly when `checkpoint_callback` is set to False."""
 
