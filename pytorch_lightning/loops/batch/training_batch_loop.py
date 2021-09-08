@@ -22,7 +22,6 @@ from torch.optim import Optimizer
 from pytorch_lightning.loops.base import Loop
 from pytorch_lightning.loops.batch.manual import ManualOptimization
 from pytorch_lightning.loops.optimizer.optimizer_loop import OptimizerLoop
-from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities import AttributeDict
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 from pytorch_lightning.utilities.warnings import WarningCache
@@ -33,9 +32,7 @@ class TrainingBatchLoop(Loop):
 
     def __init__(self) -> None:
         super().__init__()
-        self.accumulated_loss: Optional[Tensor] = None
         self.batch_outputs: Optional[List[List[STEP_OUTPUT]]] = None
-        self.running_loss: TensorRunningAccum = TensorRunningAccum(window_length=20)
         # the current split index when the batch gets split into chunks in truncated backprop through time
         self.split_idx: Optional[int] = None
         self.optimizer_loop = OptimizerLoop()
@@ -159,21 +156,6 @@ class TrainingBatchLoop(Loop):
         with self.trainer.profiler.profile("tbptt_split_batch"):
             splits = model_ref.tbptt_split_batch(batch, tbptt_steps)
         return splits
-
-    def _update_running_loss(self, current_loss: Tensor) -> None:
-        """Updates the running loss value with the current value."""
-        if self.trainer.lightning_module.automatic_optimization:
-            # track total loss for logging (avoid mem leaks)
-            self.accumulated_loss.append(current_loss)
-
-        accumulated_loss = self.accumulated_loss.mean()
-
-        if accumulated_loss is not None:
-            # calculate running loss for display
-            self.running_loss.append(self.accumulated_loss.mean() * self.trainer.accumulate_grad_batches)
-
-        # reset for next set of accumulated grads
-        self.accumulated_loss.reset()
 
     def get_active_optimizers(self, batch_idx: Optional[int] = None) -> List[Tuple[int, Optimizer]]:
         """Returns the currently active optimizers. When multiple optimizers are used with different frequencies,

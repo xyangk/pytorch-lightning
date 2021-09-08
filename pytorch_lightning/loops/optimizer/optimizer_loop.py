@@ -160,16 +160,6 @@ class OptimizerLoop(Loop):
 
         result = closure.get_result()
 
-        if result:
-            # if no result, user decided to skip optimization
-            # otherwise update running loss + reset accumulated loss
-            # TODO: find proper way to handle updating running loss
-            assert self.trainer.fit_loop is not None
-            assert self.trainer.fit_loop.epoch_loop is not None
-            assert self.trainer.fit_loop.epoch_loop.batch_loop is not None
-            assert result.loss is not None
-            self.trainer.fit_loop.epoch_loop.batch_loop._update_running_loss(result.loss)
-
         # untoggle model params
         self._run_optimization_end(opt_idx)
         return result

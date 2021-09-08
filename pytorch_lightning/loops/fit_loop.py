@@ -19,7 +19,6 @@ from pytorch_lightning.loops import Loop
 from pytorch_lightning.loops.epoch import TrainingEpochLoop
 from pytorch_lightning.trainer.connectors.logger_connector.result import ResultCollection
 from pytorch_lightning.trainer.progress import Progress
-from pytorch_lightning.trainer.supporters import TensorRunningAccum
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 log = logging.getLogger(__name__)
@@ -107,11 +106,6 @@ class FitLoop(Loop):
         if value and value < -1:
             raise MisconfigurationException(f"`max_steps` must be a positive integer or -1. You passed in {value}.")
         self.epoch_loop.max_steps = value
-
-    @property
-    def running_loss(self) -> TensorRunningAccum:
-        """Returns the running loss."""
-        return self.epoch_loop.batch_loop.running_loss
 
     @property
     def _skip_backward(self) -> bool:
@@ -212,11 +206,6 @@ class FitLoop(Loop):
 
         # changing gradient according accumulation_scheduler
         self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
-
-        # stores accumulated grad fractions per batch
-        self.epoch_loop.batch_loop.accumulated_loss = TensorRunningAccum(
-            window_length=self.trainer.accumulate_grad_batches
-        )
 
         self.epoch_progress.increment_ready()
 
