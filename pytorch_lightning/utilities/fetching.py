@@ -378,6 +378,7 @@ class StepFuncDataLoaderIter:
     def __init__(self, iterator: Iterator, data_fetcher: "AbstractDataFetcher"):
         self.iterator = iterator
         self.data_fetcher = data_fetcher
+        self.batches = []
 
     def __iter__(self) -> "StepFuncDataLoaderIter":
         return self

@@ -1387,8 +1387,9 @@ class Trainer(
             )
 
     def _on_exception(self):
-        if not _fault_tolerant_training():
+        if not (_fault_tolerant_training() or self._is_fault_tolerant_supported):
             return
+
         # save a checkpoint for fault tolerant training. we don't use `log_dir` to minimize the chances of failure.
         file_path = os.path.join(self.default_root_dir, ".pl_auto_save.ckpt")
         self.save_checkpoint(file_path)
@@ -1397,3 +1398,14 @@ class Trainer(
     def _evaluation_context(self) -> Generator:
         with torch.inference_mode() if _TORCH_GREATER_EQUAL_1_9 else torch.no_grad():
             yield
+
+    @contextmanager
+    def _fault_tolerant_support(self, is_supported: bool = True) -> Generator:
+        if not _fault_tolerant_training():
+            self._is_fault_tolerant_supported = False
+            yield
+        else:
+            is_fault_tolerant_supported = self._is_fault_tolerant_supported
+            self._is_fault_tolerant_supported = is_supported
+            yield
+            self._is_fault_tolerant_supported = is_fault_tolerant_supported

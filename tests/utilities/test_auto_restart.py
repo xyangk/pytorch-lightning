@@ -47,7 +47,7 @@ from pytorch_lightning.utilities.enums import AutoRestartBatchKeys
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.fetching import DataFetcher
 from pytorch_lightning.utilities.imports import _fault_tolerant_training
-from tests.helpers.boring_model import BoringModel
+from tests.helpers.boring_model import BoringModel, RandomDataset
 from tests.helpers.runif import RunIf
 
 
@@ -965,3 +965,38 @@ def test_dataset_rng_states_restart_with_lightning(tmpdir, dataset_classes, mult
     all_batches_resumed = torch.stack(complete_batches + resumed_batches)
     assert len(all_batches_resumed) == 9
     assert torch.equal(all_batches, all_batches_resumed)
+
+
+@mock.patch.dict(os.environ, {"PL_FAULT_TOLERANT_TRAINING": "1"})
+@RunIf(min_torch="1.7.0")
+@pytest.mark.parametrize("num_loaders", [1, 2])
+def test_restarting_val_check_interval(num_loaders, tmpdir):
+    class CustomException(Exception):
+        pass
+
+    class TestModel(BoringModel):
+        def validation_step(self, batch, batch_idx, dataloader_idx: int = 0):
+            if (num_loaders - 1) == dataloader_idx and batch_idx == 2:
+                raise CustomException
+            return super().validation_step(batch, batch_idx)
+
+        def val_dataloader(self):
+            return [DataLoader(RandomDataset(32, 64)) for _ in range(num_loaders)]
+
+        validation_epoch_end = None
+
+    model = TestModel()
+
+    trainer = Trainer(
+        default_root_dir=tmpdir,
+        max_epochs=1,
+        val_check_interval=0.5,
+        limit_train_batches=3,
+        limit_val_batches=5,
+        num_sanity_val_steps=0,
+    )
+    with suppress(CustomException):
+        trainer.fit(model)
+
+    ckpt_path = str(tmpdir / ".pl_auto_save.ckpt")
+    _ = torch.load(ckpt_path)["loops"]["fit_loop"]

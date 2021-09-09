@@ -357,6 +357,7 @@ class CaptureIterableDataset(IterableDataset):
         return self
 
     def __next__(self) -> Dict[str, Any]:
+        # TODO: If not samplers detected, get the random state here.
         return next(self.iter_data)
 
 
