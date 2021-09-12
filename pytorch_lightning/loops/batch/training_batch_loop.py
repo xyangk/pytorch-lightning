@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, Union
 
 import numpy as np
 from deprecate import void
@@ -32,7 +32,7 @@ class TrainingBatchLoop(Loop):
 
     def __init__(self) -> None:
         super().__init__()
-        self.accumulated_loss: Optional[Tensor] = None
+        self.accumulated_loss: Optional[Union[Tensor, TensorRunningAccum]] = None
         self.batch_outputs: Optional[List[List[STEP_OUTPUT]]] = None
         self.running_loss: TensorRunningAccum = TensorRunningAccum(window_length=20)
         # the current split index when the batch gets split into chunks in truncated backprop through time

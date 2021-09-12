@@ -30,13 +30,13 @@ class FitLoop(Loop):
 
     Args:
         min_epochs: The minimum number of epochs
-        max_epochs: The maximum number of epochs
+        max_epochs: The maximum number of epochs, can be set -1 to turn the limit off
     """
 
-    def __init__(self, min_epochs: Optional[int] = None, max_epochs: Optional[int] = None):
+    def __init__(self, min_epochs: int = 0, max_epochs: int = -1):
         super().__init__()
         # Allow max_epochs or max_steps to be zero, since this will be handled by fit_loop.done
-        if max_epochs and max_epochs < -1:
+        if max_epochs < -1:
             raise MisconfigurationException(
                 f"`max_epochs` must be a positive integer or -1. You passed in {max_epochs}."
             )
@@ -61,43 +61,51 @@ class FitLoop(Loop):
     @property
     def global_step(self) -> int:
         """Returns the global step."""
+        assert self.epoch_loop is not None
         return self.epoch_loop.global_step
 
     @global_step.setter
     def global_step(self, value: int) -> None:
         """Sets the global step (forwards to epoch_loop)"""
+        assert self.epoch_loop is not None
         self.epoch_loop.global_step = value
 
     @property
     def total_batch_idx(self) -> int:
         """Returns the current batch index (across epochs)"""
+        assert self.epoch_loop is not None
         return self.epoch_loop.total_batch_idx
 
     @property
     def batch_idx(self) -> int:
         """Returns the current batch index (within this epoch)"""
+        assert self.epoch_loop is not None
         return self.epoch_loop.batch_idx
 
     @property
-    def split_idx(self) -> int:
+    def split_idx(self) -> Optional[int]:
         """Returns the index of the current batch split (within the current batch) for bptt."""
-        return self.epoch_loop.batch_loop.split_idx
+        assert self.epoch_loop is not None and self.epoch_loop.batch_loop is not None
+        return self.epoch_loop.batch_loop.split_idx  # FIXME: can we avoid optional?
 
     @property
     def min_steps(self) -> int:
         # TODO(@justusschock): Why aren't we using the attribute in this class?
         """Returns the minimum numnber of steps to run."""
+        assert self.epoch_loop is not None
         return self.epoch_loop.min_steps
 
     @min_steps.setter
     def min_steps(self, value: int) -> None:
         """Sets the minimum number of steps (forwards to epoch_loop)"""
         # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
+        assert self.epoch_loop is not None
         self.epoch_loop.min_steps = value
 
     @property
     def max_steps(self) -> int:
         """Returns the maximum number of steps to run."""
+        assert self.epoch_loop is not None
         return self.epoch_loop.max_steps
 
     @max_steps.setter
@@ -106,16 +114,19 @@ class FitLoop(Loop):
         # TODO(@awaelchli): This setter is required by debugging connector (fast dev run), should be avoided
         if value and value < -1:
             raise MisconfigurationException(f"`max_steps` must be a positive integer or -1. You passed in {value}.")
+        assert self.epoch_loop is not None
         self.epoch_loop.max_steps = value
 
     @property
     def running_loss(self) -> TensorRunningAccum:
         """Returns the running loss."""
+        assert self.epoch_loop is not None and self.epoch_loop.batch_loop is not None
         return self.epoch_loop.batch_loop.running_loss
 
     @property
     def _skip_backward(self) -> bool:
         """Determines whether the loop will skip backward during automatic optimization."""
+        assert self.epoch_loop is not None
         assert self.epoch_loop.batch_loop is not None
         assert self.epoch_loop.batch_loop.optimizer_loop is not None
         return self.epoch_loop.batch_loop.optimizer_loop._skip_backward
@@ -123,12 +134,16 @@ class FitLoop(Loop):
     @_skip_backward.setter
     def _skip_backward(self, value: bool) -> None:
         """Determines whether the loop will skip backward during automatic optimization."""
+        assert self.epoch_loop is not None
         assert self.epoch_loop.batch_loop is not None
         assert self.epoch_loop.batch_loop.optimizer_loop is not None
         self.epoch_loop.batch_loop.optimizer_loop._skip_backward = value
 
     @property
     def _results(self) -> ResultCollection:
+        assert self.trainer is not None
+        assert self.epoch_loop is not None
+        assert self.epoch_loop.val_loop is not None
         if self.trainer.training:
             return self.epoch_loop._results
         if self.trainer.validating:
@@ -181,19 +196,19 @@ class FitLoop(Loop):
         """Whether we should skip the training and immediately return from the call to :meth:`run`."""
         return self.done or self.trainer.num_training_batches == 0
 
-    def connect(self, epoch_loop: TrainingEpochLoop):
+    def connect(self, epoch_loop: TrainingEpochLoop) -> None:  # type: ignore[override]
         """Connects a training epoch loop to this fit loop."""
         self.epoch_loop = epoch_loop
 
     def reset(self) -> None:
         """Resets the internal state of this loop."""
 
-    def on_run_start(self) -> None:
+    def on_run_start(self, *args: Any, **kwargs: Any) -> None:
         """Calls the ``on_train_start`` hook."""
         self._results.to(device=self.trainer.lightning_module.device)
         self.trainer.call_hook("on_train_start")
 
-    def on_advance_start(self) -> None:
+    def on_advance_start(self, *args: Any, **kwargs: Any) -> None:
         """Prepares the dataloader for training and calls the hooks ``on_epoch_start`` and
         ``on_train_epoch_start``"""
         model = self.trainer.lightning_module
@@ -214,18 +229,20 @@ class FitLoop(Loop):
         self.trainer.accumulation_scheduler.on_train_epoch_start(self.trainer, self.trainer.lightning_module)
 
         # stores accumulated grad fractions per batch
+        assert self.epoch_loop is not None and self.epoch_loop.batch_loop is not None
         self.epoch_loop.batch_loop.accumulated_loss = TensorRunningAccum(
             window_length=self.trainer.accumulate_grad_batches
         )
 
         self.epoch_progress.increment_ready()
 
-    def advance(self) -> None:
+    def advance(self, *args: Any, **kwargs: Any) -> None:
         """Runs one whole epoch."""
         dataloader = self.trainer.accelerator.process_dataloader(self.trainer.train_dataloader)
         data_fetcher = self.trainer.data_connector.get_profiled_dataloader(dataloader)
 
         with self.trainer.profiler.profile("run_training_epoch"):
+            assert self.epoch_loop is not None
             self.epoch_loop.run(data_fetcher)
 
             # the global step is manually decreased here due to backwards compatibility with existing loggers
@@ -256,9 +273,11 @@ class FitLoop(Loop):
 
     def should_accumulate(self) -> bool:
         """Whether the gradients should be accumulated."""
+        assert self.epoch_loop is not None
         return self.epoch_loop._should_accumulate()
 
     def teardown(self) -> None:
+        assert self.epoch_loop is not None
         self.epoch_loop.teardown()
 
     def on_save_checkpoint(self) -> Dict:
