@@ -114,6 +114,7 @@ class Trainer(
         tpu_cores: Optional[Union[List[int], str, int]] = None,
         ipus: Optional[int] = None,
         log_gpu_memory: Optional[str] = None,
+        log_profiler_metrics: bool = False,
         progress_bar_refresh_rate: Optional[int] = None,
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
@@ -422,6 +423,7 @@ class Trainer(
             weights_save_path,
             self.weights_summary,
             stochastic_weight_avg,
+            log_profiler_metrics,
             max_time,
         )
 
@@ -453,7 +455,7 @@ class Trainer(
         self.tuner.on_trainer_init(auto_lr_find, auto_scale_batch_size)
 
         # configure profiler
-        self.__init_profiler(profiler)
+        self.__init_profiler(profiler, log_profiler_metrics)
 
         # init logger flags
         self.logger_connector.on_trainer_init(logger, flush_logs_every_n_steps, log_every_n_steps, move_metrics_to_cpu)
@@ -1330,7 +1332,10 @@ class Trainer(
     def _log_api_event(event: str) -> None:
         torch._C._log_api_usage_once("lightning.trainer." + event)
 
-    def __init_profiler(self, profiler: Optional[Union[BaseProfiler, str]]) -> None:
+    def __init_profiler(self, profiler: Optional[Union[BaseProfiler, str]], log_profiler_metrics: bool = False) -> None:
+        if log_profiler_metrics:
+            self.profiler = SimpleProfiler()
+            return
         if isinstance(profiler, str):
             PROFILERS = {
                 "simple": SimpleProfiler,

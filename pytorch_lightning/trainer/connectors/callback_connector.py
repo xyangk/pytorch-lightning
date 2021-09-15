@@ -16,6 +16,7 @@ from datetime import timedelta
 from typing import Dict, List, Optional, Union
 
 from pytorch_lightning.callbacks import Callback, ModelCheckpoint, ModelSummary, ProgressBar, ProgressBarBase
+from pytorch_lightning.callbacks.profiler_metrics import ProfilerMetrics
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities import ModelSummaryMode, rank_zero_info
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
@@ -36,6 +37,7 @@ class CallbackConnector:
         weights_save_path: Optional[str],
         weights_summary: Optional[str],
         stochastic_weight_avg: bool,
+        log_profiler_metrics: bool,
         max_time: Optional[Union[str, timedelta, Dict[str, int]]] = None,
     ):
         # init folder paths for checkpoint + weights save callbacks
@@ -60,6 +62,8 @@ class CallbackConnector:
         self._configure_timer_callback(max_time)
 
         self._configure_model_summary_callback(weights_summary)
+
+        self._configure_profiler_metrics_callback(log_profiler_metrics)
 
         # init progress bar
         if process_position != 0:
@@ -145,6 +149,10 @@ class CallbackConnector:
             return
         timer = Timer(duration=max_time, interval="step")
         self.trainer.callbacks.append(timer)
+
+    def _configure_profiler_metrics_callback(self, log_profiler_metrics: bool) -> None:
+        if log_profiler_metrics:
+            self.trainer.callbacks.append(ProfilerMetrics())
 
     def _trainer_has_checkpoint_callbacks(self):
         return len(self.trainer.checkpoint_callbacks) > 0
