@@ -62,6 +62,7 @@ class TrainerProperties(ABC):
     _validate_loop: EvaluationLoop
     _weights_save_path: str
     _fault_tolerant_possible: bool = False
+    _should_gracefully_terminate: bool = False
 
     accelerator_connector: AcceleratorConnector
     accumulate_grad_batches: int
