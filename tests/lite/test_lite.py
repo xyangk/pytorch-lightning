@@ -47,6 +47,14 @@ class BoringModel(nn.Module):
         return torch.nn.functional.mse_loss(x, torch.ones_like(x))
 
 
+def test_error_overriding_init():
+    with pytest.raises(MisconfigurationException, match="Overriding `LightningLite.__init__` is not allowed"):
+
+        class Lite(LightningLite):
+            def __init__(self):
+                super().__init__()
+
+
 def test_unsupported_accelerator():
     accelerator = "coconut"
     with pytest.raises(MisconfigurationException, match=f"`accelerator={repr(accelerator)}` is not a valid choice"):

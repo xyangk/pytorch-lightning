@@ -16,7 +16,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 from functools import partial
 from pathlib import Path
-from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, Generator, Iterable, List, Optional, Sequence, Tuple, Union, Type
 
 import torch
 import torch.nn as nn
@@ -108,6 +108,13 @@ class LightningLite(ABC):
 
         # wrap the run method so we can inject setup logic or spawn processes for the user
         setattr(self, "run", partial(self._run_impl, self.run))
+
+    def __init_subclass__(cls: Type["LightningLite"]) -> None:
+        if LightningLite.__init__ is not cls.__init__:
+            raise MisconfigurationException(
+                f"Overriding `{LightningLite.__name__}.__init__` is not allowed. You can pass arguments to"
+                " the the `run` method."
+            )
 
     @property
     def device(self) -> torch.device:
