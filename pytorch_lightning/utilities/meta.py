@@ -11,14 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import importlib
-import inspect
 import threading
 from contextlib import contextmanager
 from functools import partial
-from itertools import chain
-from types import ModuleType
-from typing import Callable, Dict, Generator, Iterator, List, Optional, Set, Type
+from typing import Callable, Dict, Generator, Iterator, Optional, Set, Type
 
 import torch
 from torch import nn, Tensor
@@ -273,43 +269,15 @@ def _set_meta_device() -> None:
                     _MetaClass.add_subclasses(subclass.__bases__[0])
 
             def __new__(cls, *args, **kwargs):
-                subclass = cls.__bases__[0]
-                cls.add_subclasses(subclass)
-                with cls.instantiation_context(materialize=False):
-                    obj = init_meta(subclass, *args, **kwargs)
+                cls.__new__ = cls.__class_new
+                obj = init_meta(cls, *args, **kwargs)
 
-                obj.materialize = partial(cls.materialize, materialize_fn=obj.materialize)
+                # obj.materialize = partial(cls.materialize, materialize_fn=obj.materialize)
                 return obj
 
-        def search(mod: ModuleType) -> List[ModuleType]:
-            out = []
-            for _, obj in inspect.getmembers(mod):
-                if obj == subclass:
-                    out.append(mod)
-            return out
-
-        submodules = subclass.__module__.split(".")
-        mod = importlib.import_module(submodules[0])
-
-        # nn.Module class can be imported at different level and they all need to be mocked.
-        # Example: torch.nn.Linear is actually torch.nn.modules.linear.Linear
-        # Therefore, torch.nn.Linear, torch.nn.modules.Linear, torch.nn.modules.linear.Linear
-        # needs to be replaced by the torch.nn.linear.modules.Linear _MetaClass
-        out = []
-        out.append(search(mod))
-        for name in submodules[1:]:
-            mod = getattr(mod, name)
-            out.append(search(mod))
-
-        # drop empty module
-        mods = [mod for mod in chain(*out) if mod]
-
-        # store the modules search so it doesn't have to be performed again for this class
-        __STORAGE_META__[subclass] = (mods, subclass, _MetaClass)
-
-        # replace all subclass by its meta form
-        for mod in mods:
-            setattr(mod, subclass.__name__, _MetaClass)
+        if not hasattr(subclass, "__class_new"):
+            subclass.__class_new = subclass.__new__
+            subclass.__new__ = _MetaClass.__new__
 
 
 @contextmanager
