@@ -1,6 +1,6 @@
 import torch
 
-from pytorch_lightning.utilities.meta import init_meta, init_meta_context
+from pytorch_lightning.utilities.meta import init_meta_context
 
 
 class BaseModule(torch.nn.Module):
@@ -10,17 +10,16 @@ class BaseModule(torch.nn.Module):
 class MyModule(BaseModule):
     def __init__(self):
         super().__init__()
-        self.nn = torch.nn.Linear(in_features=1, out_features=1)
+        self.lins = torch.nn.ModuleList(
+            [torch.nn.Linear(in_features=1, out_features=1), torch.nn.Linear(in_features=1, out_features=2)]
+        )
 
 
 with init_meta_context():
-    my_module = torch.nn.Linear(in_features=1, out_features=1)
+    my_module = MyModule()
+    assert isinstance(my_module, MyModule)
+    assert my_module.lins[0].weight.device.type == "meta"
+    assert my_module.lins[1].weight.shape == torch.Size([2, 1])
 
-    breakpoint()
-
-    my_module = torch.nn.Linear(in_features=1, out_features=2)
-
-    my_module.materialize()
-    print(id(my_module))
-    assert isinstance(my_module, torch.nn.Linear)
-    print(my_module.weight)
+my_module.materialize()
+assert my_module.lins[0].weight.device.type == "cpu"

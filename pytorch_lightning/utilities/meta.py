@@ -104,25 +104,17 @@ if _TORCH_GREATER_EQUAL_1_10:
                     kwargs["device"] = torch.device("meta")
 
                 obj = func(*args, **kwargs)
-                print(obj)
                 return obj
 
     def init_meta(module_fn: Callable[..., Module], *args, **kwargs) -> Module:
         def create_instance(args=None, module=None, kwargs=None) -> Module:
             if module:
-                # module.__init__(*args, **kwargs)
+                module.__init__(*args, **kwargs)
+                module.__class_new = module.__new__
                 return module
             return module_fn(*args, **kwargs)
 
-        if _tls.in_call:
-            module = create_instance(args=(), kwargs={})
-        else:
-            _tls.in_call = True
-            try:
-                with enable_python_mode(_MetaContext):
-                    module = create_instance(args=(), kwargs={})
-            finally:
-                _tls.in_call = False
+        module = create_instance(args=(), kwargs={})
 
         module.materialize = partial(
             create_instance, module=module, args=args, kwargs=kwargs
@@ -190,40 +182,7 @@ def materialize_module(root_module: nn.Module) -> nn.Module:
     return root_module
 
 
-# cache subclasses to optimize the search when resetting the meta device later on.
 __STORAGE_META__ = {}
-
-__CREATED_MODULES__ = set()
-
-
-def _unset_meta_device(from_created: bool = False) -> None:
-    """Replace all meta module by their original version."""
-    if not _TORCH_GREATER_EQUAL_1_10:
-        raise MisconfigurationException("`init_meta` is supported from PyTorch 1.10.0")
-
-    if from_created:
-        values = [__STORAGE_META__[key] for key in __CREATED_MODULES__]
-    else:
-        values = __STORAGE_META__.values()
-
-    for mods, subclass, _ in values:
-        for mod in mods:
-            setattr(mod, subclass.__name__, subclass)
-
-
-def _set_meta_device_populated(from_created: bool = False) -> None:
-    """Replace all meta module by their original version."""
-    if not _TORCH_GREATER_EQUAL_1_10:
-        raise MisconfigurationException("`init_meta` is supported from PyTorch 1.10.0")
-
-    if from_created:
-        values = [__STORAGE_META__[key] for key in __CREATED_MODULES__]
-    else:
-        values = __STORAGE_META__.values()
-
-    for mods, subclass, meta_class in values:
-        for mod in mods:
-            setattr(mod, subclass.__name__, meta_class)
 
 
 def _wrap_init(f: Callable, x=None, y=None) -> Callable:
@@ -231,12 +190,12 @@ def _wrap_init(f: Callable, x=None, y=None) -> Callable:
     def wrapper(module: Any, *args, **kwargs) -> None:
         nonlocal x
         nonlocal y
-        # f(module, *x, **y)
+        f(module, *x, **y)
 
     return wrapper
 
 
-def _set_meta_device() -> None:
+def _init_meta_device() -> None:
     """Replace all torch.nn.Module by their meta replacement."""
 
     if not _TORCH_GREATER_EQUAL_1_10:
@@ -261,14 +220,29 @@ def _set_meta_device() -> None:
                 ori_init = cls.__init__
                 cls.__init__ = _wrap_init(cls.__init__, x=args, y=kwargs)
                 obj = init_meta(cls, *args, **kwargs)
-                print(id(obj))
                 cls.__init__ = ori_init
                 cls.__new__ = meta_new
                 return obj
 
+        __STORAGE_META__[subclass] = _MetaClass
+
+
+def _unset_meta_device(from_created: bool = False) -> None:
+    """Replace all meta module by their original version."""
+    if not _TORCH_GREATER_EQUAL_1_10:
+        raise MisconfigurationException("`init_meta` is supported from PyTorch 1.10.0")
+
+
+def _set_meta_device() -> None:
+    """Replace all torch.nn.Module by their meta replacement."""
+
+    if not _TORCH_GREATER_EQUAL_1_10:
+        raise MisconfigurationException("`init_meta` is supported from PyTorch 1.10.0")
+
+    for subclass, meta_class in __STORAGE_META__.items():
         if not hasattr(subclass, "_class_new"):
             subclass._class_new = subclass.__new__
-            subclass.__new__ = _MetaClass.__new__
+            subclass.__new__ = meta_class.__new__
 
 
 @contextmanager
@@ -277,6 +251,10 @@ def init_meta_context() -> Generator:
         "Be aware this feature is highly experimental and there are a number of weird edge cases "
         "where it can internal assert and/or crash. A more stable version is to be expected from PyTorch 1.11."
     )
-    _set_meta_device()
-    yield
-    _unset_meta_device()
+    _tls.in_call = True
+    _init_meta_device()
+    with enable_python_mode(_MetaContext):
+        _set_meta_device()
+        yield
+    # _unset_meta_device()
+    _tls.in_call = False
