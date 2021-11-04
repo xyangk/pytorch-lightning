@@ -11,10 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+import functools
 import threading
 from contextlib import contextmanager
 from functools import partial
-from typing import Callable, Dict, Generator, Iterator, Optional, Set, Type
+from typing import Any, Callable, Dict, Generator, Iterator, Optional, Set, Type
 
 import torch
 from torch import nn, Tensor
@@ -102,26 +103,29 @@ if _TORCH_GREATER_EQUAL_1_10:
                 if "device" in kwargs:
                     kwargs["device"] = torch.device("meta")
 
-                return func(*args, **kwargs)
+                obj = func(*args, **kwargs)
+                print(obj)
+                return obj
 
     def init_meta(module_fn: Callable[..., Module], *args, **kwargs) -> Module:
-        def create_instance(module=None) -> Module:
+        def create_instance(args=None, module=None, kwargs=None) -> Module:
             if module:
-                module.__init__(*args, **kwargs)
+                # module.__init__(*args, **kwargs)
                 return module
             return module_fn(*args, **kwargs)
 
         if _tls.in_call:
-            module = create_instance()
+            module = create_instance(args=(), kwargs={})
         else:
             _tls.in_call = True
             try:
                 with enable_python_mode(_MetaContext):
-                    module = create_instance()
+                    module = create_instance(args=(), kwargs={})
             finally:
                 _tls.in_call = False
 
-        module.materialize = partial(create_instance, module=module)  # type: ignore[assignment]
+        module.materialize = partial(
+            create_instance, module=module, args=args, kwargs=kwargs)  # type: ignore[assignment]
 
         return module
 
@@ -221,6 +225,16 @@ def _set_meta_device_populated(from_created: bool = False) -> None:
             setattr(mod, subclass.__name__, meta_class)
 
 
+def _wrap_init(f: Callable, x=None, y=None) -> Callable:
+    @functools.wraps(f)
+    def wrapper(module: Any, *args, **kwargs) -> None:
+        nonlocal x
+        nonlocal y
+        # f(module, *x, **y)
+
+    return wrapper
+
+
 def _set_meta_device() -> None:
     """Replace all torch.nn.Module by their meta replacement."""
 
@@ -236,47 +250,23 @@ def _set_meta_device() -> None:
         if isinstance(subclass, (Sequential, ModuleList, ModuleDict)):
             continue
 
-        # if a subclass has already been stored, we should use the cache
-        if str(subclass) in __STORAGE_META__:
-            # reset the class import package to its rightfull state.
-            mods, subclass, meta_class = __STORAGE_META__[subclass]
-            for mod in mods:
-                setattr(mod, subclass.__name__, meta_class)
-            continue
-
         # Create a class subclassing current `subclass` overriding its new method.
         # this will enable use to use `torch.distributed.nn.utils.init_meta` to create a `meta`
         # version of the current subclass module
         class _MetaClass(subclass):
-            @classmethod
-            @contextmanager
-            def instantiation_context(cls, materialize: bool):
-                _unset_meta_device(from_created=True)
-                yield
-                _set_meta_device_populated(from_created=True)
-
-            @classmethod
-            def materialize(cls, materialize_fn: Callable):
-                with cls.instantiation_context(materialize=True):
-                    obj = materialize_fn()
-                return obj
-
-            @staticmethod
-            def add_subclasses(subclass):
-                """This is used to unrol the instantion tree while creating the modules."""
-                __CREATED_MODULES__.add(subclass)
-                if subclass.__bases__[0] != torch.nn.modules.module.Module:
-                    _MetaClass.add_subclasses(subclass.__bases__[0])
-
             def __new__(cls, *args, **kwargs):
-                cls.__new__ = cls.__class_new
+                meta_new = cls.__new__
+                cls.__new__ = cls._class_new
+                ori_init = cls.__init__
+                cls.__init__ = _wrap_init(cls.__init__, x=args, y=kwargs)
                 obj = init_meta(cls, *args, **kwargs)
-
-                # obj.materialize = partial(cls.materialize, materialize_fn=obj.materialize)
+                print(id(obj))
+                cls.__init__ = ori_init
+                cls.__new__ = meta_new
                 return obj
 
-        if not hasattr(subclass, "__class_new"):
-            subclass.__class_new = subclass.__new__
+        if not hasattr(subclass, "_class_new"):
+            subclass._class_new = subclass.__new__
             subclass.__new__ = _MetaClass.__new__
 
 
