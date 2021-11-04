@@ -125,7 +125,8 @@ if _TORCH_GREATER_EQUAL_1_10:
                 _tls.in_call = False
 
         module.materialize = partial(
-            create_instance, module=module, args=args, kwargs=kwargs)  # type: ignore[assignment]
+            create_instance, module=module, args=args, kwargs=kwargs
+        )  # type: ignore[assignment]
 
         return module
 
