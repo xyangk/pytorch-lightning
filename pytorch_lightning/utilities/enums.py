@@ -263,3 +263,9 @@ class _StrategyType(LightningEnum):
     def is_interactive_compatible(self) -> bool:
         """Returns whether self is interactive compatible."""
         return self in _StrategyType.interactive_compatible_types()
+
+    @staticmethod
+    def invalid_strategies() -> List["_StrategyType"]:
+        # Could be removed after ending support for passing strategies
+        # to the `accelerator` flag with v1.7
+        return [_StrategyType.DDP_CPU, _StrategyType.TPU_SPAWN]
