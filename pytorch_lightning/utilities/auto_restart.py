@@ -615,7 +615,7 @@ def _reload_dataloader_state_dict_manual(dataloader: DataLoader, state_dict: Dic
             obj = getattr(dataloader, dataloader_attr_name)
             if not isinstance(obj, _SupportsStateDict):
                 raise MisconfigurationException(
-                    f"The DataLoader attribute {dataloader_attr_name}:{obj} should have a `load_state_dict` method."
+                    f"The DataLoader attribute {dataloader_attr_name}: {obj} should have a `load_state_dict` method."
                 )
 
             obj.load_state_dict(sampler_state[dataloader_attr_name])
