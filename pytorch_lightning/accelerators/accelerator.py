@@ -22,12 +22,11 @@ from torch.nn import Module
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.plugins.precision import ApexMixedPrecisionPlugin, NativeMixedPrecisionPlugin, PrecisionPlugin
+from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.plugins.training_type import DataParallelPlugin, TrainingTypePlugin
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import rank_zero_deprecation
 from pytorch_lightning.utilities.apply_func import apply_to_collection, move_data_to_device
-from pytorch_lightning.utilities.enums import AMPType, LightningEnum
 from pytorch_lightning.utilities.types import STEP_OUTPUT
 
 
@@ -263,14 +262,6 @@ class Accelerator:
         self.model = model
         self.optimizers = optimizers
         self.lr_schedulers = schedulers
-
-    @property
-    def amp_backend(self) -> Optional[LightningEnum]:
-        if isinstance(self.training_type_plugin.precision_plugin, ApexMixedPrecisionPlugin):
-            return AMPType.APEX
-        if isinstance(self.training_type_plugin.precision_plugin, NativeMixedPrecisionPlugin):
-            return AMPType.NATIVE
-        return None
 
     @property
     def precision(self) -> Union[str, int]:

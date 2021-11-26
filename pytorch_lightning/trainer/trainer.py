@@ -20,7 +20,7 @@ import warnings
 from argparse import ArgumentParser, Namespace
 from datetime import timedelta
 from pathlib import Path
-from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Tuple, Union, TYPE_CHECKING
 from weakref import proxy
 
 import torch
@@ -96,6 +96,10 @@ from pytorch_lightning.utilities.types import (
     LRSchedulerTypeUnion,
     TRAIN_DATALOADERS,
 )
+
+
+if TYPE_CHECKING:
+    from pytorch_lightning.utilities import AMPType
 
 log = logging.getLogger(__name__)
 # warnings to ignore in trainer
@@ -1670,8 +1674,8 @@ class Trainer(
         self.accelerator.optimizer_frequencies = new_freqs
 
     @property
-    def amp_backend(self) -> Optional[str]:
-        return self.accelerator.amp_backend
+    def amp_backend(self) -> Optional["AMPType"]:
+        return self.precision_plugin.backend
 
     @property
     def precision(self) -> Union[str, int]:

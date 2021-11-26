@@ -18,7 +18,6 @@ from weakref import proxy
 from torch.optim import Optimizer
 
 import pytorch_lightning as pl
-from pytorch_lightning.utilities import AMPType
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 
 
@@ -63,7 +62,7 @@ class LightningOptimizer:
     @classmethod
     def _to_lightning_optimizer(cls, optimizer: Optimizer, trainer: "pl.Trainer", opt_idx: int) -> "LightningOptimizer":
         # apex overrides .step function and need to be wrapped on each step
-        if trainer.amp_backend is not None and trainer.amp_backend == AMPType.APEX:
+        if isinstance(trainer.precision_plugin, pl.plugins.ApexMixedPrecisionPlugin):
             lightning_optimizer = cls(optimizer)
             lightning_optimizer._on_trainer_init(trainer)
         else:

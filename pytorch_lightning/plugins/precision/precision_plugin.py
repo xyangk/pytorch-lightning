@@ -13,7 +13,7 @@
 # limitations under the License.
 import contextlib
 from functools import partial
-from typing import Any, Callable, Generator, List, Optional, Tuple, Union
+from typing import Any, Callable, Generator, List, Optional, Tuple, Union, TYPE_CHECKING
 
 import torch
 from torch import Tensor
@@ -25,6 +25,9 @@ from pytorch_lightning.core.hooks import CheckpointHooks
 from pytorch_lightning.utilities import grad_norm, GradClipAlgorithmType
 from pytorch_lightning.utilities.types import _PARAMETERS
 
+if TYPE_CHECKING:
+    from pytorch_lightning.utilities import AMPType
+
 
 class PrecisionPlugin(CheckpointHooks):
     """Base class for all plugins handling the precision-specific parts of the training.
@@ -32,6 +35,7 @@ class PrecisionPlugin(CheckpointHooks):
     The class attribute precision must be overwritten in child classes. The default value reflects fp32 training.
     """
 
+    backend: Optional["AMPType"] = None
     precision: Union[str, int] = 32
 
     def main_params(self, optimizer: Optimizer) -> _PARAMETERS:
