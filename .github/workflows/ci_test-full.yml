@@ -6,7 +6,6 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
     branches: [master, "release/*"]
   pull_request:
     branches: [master, "release/*"]
-    types: [opened, reopened, ready_for_review, synchronize]
 
 jobs:
 
@@ -17,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-18.04, windows-2019, macOS-10.15]
+        os: [ubuntu-latest, windows-latest, macOS-latest]
         python-version: ["3.7", "3.9"]  # minimum, maximum
         requires: ["oldest", "latest"]
         release: ["stable"]
@@ -136,8 +135,7 @@ jobs:
 
     - name: Tests
       run: |
-        # NOTE: do not include coverage report here, see: https://github.com/nedbat/coveragepy/issues/1003
-        coverage run --source pytorch_lightning -m pytest pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
+        coverage run --source pytorch_lightning -m pytest tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-py${{ matrix.python-version }}-${{ matrix.requires }}-${{ matrix.release }}.xml
 
     - name: Examples
       run: |

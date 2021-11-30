@@ -9,7 +9,7 @@ on:  # Trigger the workflow on push or pull request, but only for the master bra
 
 jobs:
   conda:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     container: pytorchlightning/pytorch_lightning:base-conda-py${{ matrix.python-version }}-torch${{ matrix.pytorch-version }}
     strategy:
       fail-fast: false
@@ -28,7 +28,9 @@ jobs:
         # adjust versions according installed Torch version
         python ./requirements/adjust_versions.py requirements/extra.txt
         python ./requirements/adjust_versions.py requirements/examples.txt
-        pip install --requirement requirements/devel.txt --find-links https://download.pytorch.org/whl/nightly/torch_nightly.html
+        pip install --requirement requirements.txt --find-links https://download.pytorch.org/whl/cpu/torch_stable.html
+        pip install --requirement requirements/extra.txt
+        pip install --requirement requirements/test.txt
         # set a per-test timeout of 2.5 minutes to fail sooner. this aids with hanging tests
         pip install pytest-timeout
         pip list
@@ -43,14 +45,14 @@ jobs:
 
     - name: Tests
       run: |
-        coverage run --source pytorch_lightning -m pytest --timeout 150 pytorch_lightning tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
+        coverage run --source pytorch_lightning -m pytest --timeout 150 tests -v --durations=50 --junitxml=junit/test-results-${{ runner.os }}-torch${{ matrix.pytorch-version }}.xml
       shell: bash -l {0}
 
     - name: Upload pytest results
       uses: actions/upload-artifact@v2
       with:
-        name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}
-        path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}-${{ matrix.requires }}.xml
+        name: pytest-results-${{ runner.os }}-${{ matrix.python-version }}
+        path: junit/test-results-${{ runner.os }}-${{ matrix.python-version }}.xml
       if: failure()
 
     - name: Statistics
