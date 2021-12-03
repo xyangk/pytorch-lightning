@@ -259,7 +259,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         # load last weights
         assert self.global_rank == 0
         print("transfer back to", spawn_output.last_path, trainer.state.fn)
-        if spawn_output.last_path is not None and trainer.state.fn == TrainerFn.FITTING:
+        if spawn_output.last_path is not None:
             ckpt = self.checkpoint_io.load_checkpoint(
                 spawn_output.last_path, map_location=(lambda storage, loc: storage)
             )
