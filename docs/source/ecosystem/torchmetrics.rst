@@ -1,7 +1,7 @@
 TorchMetrics
 ============
 
-`TorchMetrics <https://torchmetrics.readthedocs.io/en/latest//>`_ is a collection of Machine learning metrics for distributed, 
+`TorchMetrics <https://torchmetrics.readthedocs.io/en/latest//>`_ is a collection of Machine learning metrics for distributed,
 scalable PyTorch models and an easy-to-use API to create custom metrics. It has a collection of 25+ PyTorch metrics implementations and
 is rigorously tested for all edge cases.
 
