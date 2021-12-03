@@ -72,8 +72,8 @@ class Accelerator:
 
     def pre_dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
-        self.training_type_plugin._move_optimizer_state()
         self.training_type_plugin.pre_dispatch(trainer)
+        self.training_type_plugin._move_optimizer_state()
 
     def dispatch(self, trainer: "pl.Trainer") -> None:
         """Hook to do something before the training/evaluation/prediction starts."""
