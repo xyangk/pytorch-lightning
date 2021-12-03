@@ -679,7 +679,7 @@ class Trainer(
             if isinstance(self.training_type_plugin, DDPSpawnPlugin):
                 spawn_output: _SpawnOutput = self.training_type_plugin.spawn(trainer_fn, *args, **kwargs)
                 print("transfer back", spawn_output)
-                
+
                 self.training_type_plugin._recover_results_in_main_process(spawn_output, self)
                 return spawn_output.trainer_results
             else:

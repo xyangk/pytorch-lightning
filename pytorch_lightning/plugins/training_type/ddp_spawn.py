@@ -231,6 +231,8 @@ class DDPSpawnPlugin(ParallelPlugin):
         if self.global_rank != 0:
             return
 
+        print("collecting", best_model_path, trainer.state.fn)
+
         # save the last weights
         last_path = None
         if trainer.state.fn == TrainerFn.FITTING and best_model_path is not None and len(best_model_path) > 0:
@@ -245,6 +247,7 @@ class DDPSpawnPlugin(ParallelPlugin):
         self.add_to_queue(trainer, extra)
 
         state = trainer.state
+        print(_SpawnOutput(best_model_path, last_path, state, results, extra))
         return _SpawnOutput(best_model_path, last_path, state, results, extra)
 
     def _recover_results_in_main_process(self, spawn_output: "_SpawnOutput", trainer: "pl.Trainer") -> None:
