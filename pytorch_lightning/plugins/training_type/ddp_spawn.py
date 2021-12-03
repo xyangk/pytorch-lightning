@@ -254,10 +254,13 @@ class DDPSpawnPlugin(ParallelPlugin):
 
         # TODO: pass also best score
         # load last weights
+        assert self.global_rank == 0
+        print("transfer back to", spawn_output.last_path, trainer.state.fn)
         if spawn_output.last_path is not None and trainer.state.fn == TrainerFn.FITTING:
             ckpt = self.checkpoint_io.load_checkpoint(
                 spawn_output.last_path, map_location=(lambda storage, loc: storage)
             )
+            print(ckpt)
             self.lightning_module.load_state_dict(ckpt)
 
         trainer.state = spawn_output.trainer_state
