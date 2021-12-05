@@ -74,7 +74,7 @@ class DDP2Plugin(DDPPlugin):
     #     return DistributedDataParallel(module=model, device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs)
 
     def determine_ddp_device_ids(self):
-        return self.parallel_devices
+        return [device.index for device in self.parallel_devices]
 
     def set_world_ranks(self) -> None:
         if self.cluster_environment is None:
