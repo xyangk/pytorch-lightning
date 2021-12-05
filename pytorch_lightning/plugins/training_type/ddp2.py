@@ -59,6 +59,9 @@ class DDP2Plugin(DDPPlugin):
     def root_device(self):
         return self.parallel_devices[0]
 
+    def determine_ddp_device_ids(self):
+        return [device.index for device in self.parallel_devices]
+
     @property
     def distributed_sampler_kwargs(self):
         distributed_sampler_kwargs = dict(num_replicas=self.num_nodes, rank=self.global_rank)
