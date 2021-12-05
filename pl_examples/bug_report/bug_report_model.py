@@ -53,6 +53,9 @@ def run():
         default_root_dir=os.getcwd(),
         max_epochs=-1,
         max_steps=-1,
+        accelerator="gpu",
+        strategy="ddp2",
+        devices=2,
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
     trainer.test(model, dataloaders=test_data)
