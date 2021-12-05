@@ -55,10 +55,6 @@ class DDP2Plugin(DDPPlugin):
     def root_device(self):
         return self.parallel_devices[0]
 
-    def model_to_device(self):
-        # no need to do anything when model is wrapped in torch.nn.DataParallel
-        pass
-
     @property
     def distributed_sampler_kwargs(self):
         distributed_sampler_kwargs = dict(num_replicas=self.num_nodes, rank=self.global_rank)
