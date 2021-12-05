@@ -51,12 +51,8 @@ def run():
     model = BoringModel()
     trainer = Trainer(
         default_root_dir=os.getcwd(),
-        limit_train_batches=1,
-        limit_val_batches=1,
-        limit_test_batches=1,
-        num_sanity_val_steps=0,
-        max_epochs=1,
-        enable_model_summary=False,
+        max_epochs=-1,
+        max_steps=-1,
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
     trainer.test(model, dataloaders=test_data)
