@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
+from torch.nn import DataParallel, Module
 
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
@@ -68,13 +69,12 @@ class DDP2Plugin(DDPPlugin):
     def _is_single_process_single_device(self) -> bool:
         return False
 
-    #
-    # def _setup_model(self, model: Module) -> DistributedDataParallel:
-    #     """Wraps the model into a :class:`~torch.nn.parallel.distributed.DistributedDataParallel` module."""
-    #     return DistributedDataParallel(module=model, device_ids=self.determine_ddp_device_ids(), **self._ddp_kwargs)
+    def _setup_model(self, model: Module) -> DataParallel:
+        """Wraps the model into a :class:`~torch.nn.parallel.DataParallel` module."""
+        return DataParallel(module=model, device_ids=self.parallel_devices)
 
-    def determine_ddp_device_ids(self):
-        return [device.index for device in self.parallel_devices]
+    # def determine_ddp_device_ids(self):
+    #     return [device.index for device in self.parallel_devices]
 
     def set_world_ranks(self) -> None:
         if self.cluster_environment is None:
