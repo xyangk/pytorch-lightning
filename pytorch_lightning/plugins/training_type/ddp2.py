@@ -14,6 +14,7 @@
 import torch
 from torch.nn import DataParallel, Module
 
+from pytorch_lightning.overrides import LightningParallelModule
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.enums import _StrategyType
@@ -65,6 +66,12 @@ class DDP2Plugin(DDPPlugin):
         distributed_sampler_kwargs = dict(num_replicas=self.num_nodes, rank=self.global_rank)
         return distributed_sampler_kwargs
 
+    def pre_configure_ddp(self) -> None:
+        pass
+
+    def configure_ddp(self) -> None:
+        self._model = self._setup_model(LightningParallelModule(self._model))
+
     @property
     def _is_single_process_single_device(self) -> bool:
         return False
@@ -72,9 +79,6 @@ class DDP2Plugin(DDPPlugin):
     def _setup_model(self, model: Module) -> DataParallel:
         """Wraps the model into a :class:`~torch.nn.parallel.DataParallel` module."""
         return DataParallel(module=model, device_ids=self.parallel_devices)
-
-    # def determine_ddp_device_ids(self):
-    #     return [device.index for device in self.parallel_devices]
 
     def set_world_ranks(self) -> None:
         if self.cluster_environment is None:
