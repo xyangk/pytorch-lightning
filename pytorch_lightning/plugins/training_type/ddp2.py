@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 import torch
-from torch import Module
-from torch.nn.parallel import DistributedDataParallel
 
 from pytorch_lightning.plugins.training_type.ddp import DDPPlugin
 from pytorch_lightning.utilities.apply_func import apply_to_collection
