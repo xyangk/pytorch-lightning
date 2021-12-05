@@ -18,7 +18,8 @@ from pytorch_lightning.utilities.apply_func import apply_to_collection
 from pytorch_lightning.utilities.enums import _StrategyType
 from pytorch_lightning.utilities.types import _METRIC_COLLECTION
 
-
+# https://github.com/PyTorchLightning/pytorch-lightning/blob/1.0.0/pytorch_lightning/accelerators/ddp_accelerator.py
+# https://www.diffchecker.com/kyaAjiNp
 class DDP2Plugin(DDPPlugin):
     """DDP2 behaves like DP in one node, but synchronization across nodes behaves like in DDP."""
 
