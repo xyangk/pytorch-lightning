@@ -32,6 +32,10 @@ class DDP2Plugin(DDPPlugin):
     def world_size(self) -> int:
         return self.num_nodes
 
+    def setup_environment(self) -> None:
+        # don't creat subprocesses
+        self.setup_distributed()
+
     def reduce(self, collection: _METRIC_COLLECTION, *args, **kwargs) -> _METRIC_COLLECTION:
         """Reduces a collection of tensors from all processes. It can be applied to just a single tensor. In DDP2,
         the reduction here is only across local devices within the node.
