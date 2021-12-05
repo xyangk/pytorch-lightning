@@ -76,3 +76,6 @@ class DDP2Plugin(DDPPlugin):
             return
         self.cluster_environment.set_global_rank(self.node_rank)
         self.cluster_environment.set_world_size(self.num_nodes)
+
+    def training_step_end(self, output):
+        return torch.mean(output)
