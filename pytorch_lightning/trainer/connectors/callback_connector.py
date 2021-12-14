@@ -24,6 +24,7 @@ from pytorch_lightning.callbacks import (
     RichProgressBar,
     TQDMProgressBar,
 )
+from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
 from pytorch_lightning.callbacks.rich_model_summary import RichModelSummary
 from pytorch_lightning.callbacks.timer import Timer
 from pytorch_lightning.utilities import ModelSummaryMode
@@ -304,4 +305,7 @@ class CallbackConnector:
         """
         checkpoints = [c for c in callbacks if isinstance(c, ModelCheckpoint)]
         not_checkpoints = [c for c in callbacks if not isinstance(c, ModelCheckpoint)]
-        return not_checkpoints + checkpoints
+        callbacks = not_checkpoints + checkpoints
+        batch_size_finder_callback = [c for c in callbacks if isinstance(c, BatchSizeFinder)]
+        other_callbacks = [c for c in callbacks if not isinstance(c, BatchSizeFinder)]
+        return batch_size_finder_callback + other_callbacks
