@@ -1,6 +1,5 @@
 import torch
 import torch.distributed
-import torch.multiprocessing as mp
 import os
 
 
@@ -22,7 +21,8 @@ def run(local_rank):
     torch.cuda.set_device(local_rank)
 
     model = torch.nn.SyncBatchNorm.convert_sync_batchnorm(model)
-    model.to(device)
+    model = model.to(device)
+    script = torch.jit.script(model)
 
 
 if __name__ == "__main__":
