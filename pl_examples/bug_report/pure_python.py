@@ -26,7 +26,5 @@ def run(local_rank):
 
 
 if __name__ == "__main__":
-    os.environ["MASTER_ADDR"] = "localhost"
-    os.environ["MASTER_PORT"] = "1234"
     local_rank = int(os.environ["LOCAL_RANK"])
     run(local_rank)
