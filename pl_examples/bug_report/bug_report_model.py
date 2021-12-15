@@ -22,9 +22,10 @@ class BoringModel(LightningModule):
     def __init__(self):
         super().__init__()
         self.layer = torch.nn.Linear(32, 2)
+        self.batch_norm = torch.nn.BatchNorm1d(2)
 
     def forward(self, x):
-        return self.layer(x)
+        return self.batch_norm(self.layer(x))
 
     def training_step(self, batch, batch_idx):
         loss = self(batch).sum()
@@ -46,7 +47,6 @@ class BoringModel(LightningModule):
 def run():
     train_data = DataLoader(RandomDataset(32, 64), batch_size=2)
     val_data = DataLoader(RandomDataset(32, 64), batch_size=2)
-    test_data = DataLoader(RandomDataset(32, 64), batch_size=2)
 
     model = BoringModel()
     trainer = Trainer(
@@ -57,9 +57,13 @@ def run():
         num_sanity_val_steps=0,
         max_epochs=1,
         enable_model_summary=False,
+        accelerator="cpu",
+        devices=2,
+        strategy="ddp",
+        sync_batchnorm=True,
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
-    trainer.test(model, dataloaders=test_data)
+    script = model.to_torchscript()
 
 
 if __name__ == "__main__":
