@@ -57,7 +57,7 @@ def run():
         num_sanity_val_steps=0,
         max_epochs=1,
         enable_model_summary=False,
-        accelerator="cpu",
+        accelerator="gpu",
         devices=2,
         strategy="ddp",
         sync_batchnorm=True,
