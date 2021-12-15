@@ -63,6 +63,7 @@ def run():
         sync_batchnorm=True,
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
+    print(type(model.batch_norm))
     script = model.to_torchscript()
 
 
