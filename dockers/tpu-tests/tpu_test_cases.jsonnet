@@ -32,12 +32,13 @@ local tputests = base.BaseTest {
       pip install -e .
       echo $KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS
       export XRT_TPU_CONFIG="tpu_worker;0;${KUBE_GOOGLE_CLOUD_TPU_ENDPOINTS:7}"
-      coverage run --source=pytorch_lightning -m pytest -v --capture=no \
-          tests/profiler/test_xla_profiler.py \
-          pytorch_lightning/utilities/xla_device.py \
-          tests/accelerators/test_tpu.py \
-          tests/callbacks/test_device_stats_monitor.py \
-          tests/models/test_tpu.py
+
+      # find tests marked as `@RunIf(tpu=True)`. done manually instead of with pytest because it is faster
+      grep_output=$(grep --recursive --word-regexp 'tests' --regexp 'tpu=True' --include '*.py' --exclude 'tests/conftest.py')
+      # file paths, remove duplicates
+      files=$(echo "$grep_output" | cut -f1 -d: | sort | uniq)
+
+      coverage run --source=pytorch_lightning -m pytest -v --capture=no $files
       test_exit_code=$?
       echo "\n||| END PYTEST LOGS |||\n"
       coverage xml
