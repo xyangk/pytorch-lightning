@@ -137,7 +137,8 @@ class RunIf:
             reasons.append("unimplemented on Windows")
 
         if tpu:
-            conditions.append(not _TPU_AVAILABLE)
+            env_flag = os.getenv("PL_RUN_TPU_TESTS", "0")
+            conditions.append(env_flag != "1" or not _TPU_AVAILABLE)
             reasons.append("TPU")
 
         if ipu:
