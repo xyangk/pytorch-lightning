@@ -140,6 +140,7 @@ class RunIf:
             env_flag = os.getenv("PL_RUN_TPU_TESTS", "0")
             conditions.append(env_flag != "1" or not _TPU_AVAILABLE)
             reasons.append("TPU")
+            kwargs["tpu"] = True
 
         if ipu:
             conditions.append(not _IPU_AVAILABLE)
