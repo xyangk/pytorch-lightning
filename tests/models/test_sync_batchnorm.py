@@ -68,8 +68,6 @@ class SyncBNModule(LightningModule):
         return torch.optim.Adam(self.linear.parameters(), lr=0.02)
 
 
-# TODO: Fatal Python error: Bus error
-@pytest.mark.skip(reason="Fatal Python error: Bus error")
 @RunIf(min_gpus=2, standalone=True)
 def test_sync_batchnorm_ddp(tmpdir):
     seed_everything(234)
@@ -100,7 +98,7 @@ def test_sync_batchnorm_ddp(tmpdir):
 
     # reset datamodule
     # batch-size = 16 because 2 GPUs in DDP
-    dm = MNISTDataModule(batch_size=16, dist_sampler=True)
+    dm = MNISTDataModule(batch_size=16)
     dm.prepare_data()
     dm.setup(stage=None)
 
