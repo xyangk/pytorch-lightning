@@ -16,7 +16,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
-from pytorch_lightning.plugins import DDPSpawnPlugin
 from pytorch_lightning.utilities import FLOAT16_EPSILON
 from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
@@ -109,6 +108,7 @@ def test_sync_batchnorm_ddp(tmpdir):
         max_epochs=1,
         max_steps=3,
         sync_batchnorm=True,
+        replace_sampler_ddp=False,
         num_sanity_val_steps=0,
         enable_checkpointing=False,
         enable_model_summary=False,
