@@ -11,14 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import pytest
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 from pytorch_lightning import LightningModule, seed_everything, Trainer
 from pytorch_lightning.plugins import DDPSpawnPlugin
-from pytorch_lightning.plugins.environments import LightningEnvironment
 from pytorch_lightning.utilities import FLOAT16_EPSILON
 from tests.helpers.datamodules import MNISTDataModule
 from tests.helpers.runif import RunIf
@@ -103,24 +101,17 @@ def test_sync_batchnorm_ddp(tmpdir):
     dm.setup(stage=None)
 
     model = SyncBNModule(gpu_count=2, bn_targets=bn_outputs)
-    ddp = DDPSpawnPlugin(
-        parallel_devices=[torch.device("cuda", 0), torch.device("cuda", 1)],
-        num_nodes=1,
-        sync_batchnorm=True,
-        cluster_environment=LightningEnvironment(),
-        find_unused_parameters=True,
-    )
 
     trainer = Trainer(
         default_root_dir=tmpdir,
         gpus=2,
-        num_nodes=1,
-        strategy=ddp,
+        strategy=DDPSpawnPlugin(sync_batchnorm=True),
         max_epochs=1,
         max_steps=3,
         sync_batchnorm=True,
         num_sanity_val_steps=0,
-        replace_sampler_ddp=False,
+        enable_checkpointing=False,
+        enable_model_summary=False,
     )
 
     trainer.fit(model, dm)
