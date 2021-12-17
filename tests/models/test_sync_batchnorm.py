@@ -23,14 +23,10 @@ from tests.helpers.utils import set_random_main_port
 
 
 class SyncBNModule(LightningModule):
-    def __init__(self, gpu_count=1, **kwargs):
+    def __init__(self, gpu_count=1, bn_targets=None):
         super().__init__()
-
         self.gpu_count = gpu_count
-        self.bn_targets = None
-        if "bn_targets" in kwargs:
-            self.bn_targets = kwargs["bn_targets"]
-
+        self.bn_targets = bn_targets
         self.linear = nn.Linear(28 * 28, 10)
         self.bn_layer = nn.BatchNorm1d(28 * 28)
 
@@ -71,7 +67,7 @@ def test_sync_batchnorm_ddp(tmpdir):
     set_random_main_port()
 
     # define datamodule and dataloader
-    dm = MNISTDataModule()
+    dm = MNISTDataModule(batch_size=32)
     dm.prepare_data()
     dm.setup(stage=None)
 
@@ -91,10 +87,11 @@ def test_sync_batchnorm_ddp(tmpdir):
         if batch_idx == 2:
             break
 
-    bn_outputs = [x.cuda() for x in bn_outputs]
+    # bn_outputs = [x.cuda() for x in bn_outputs]
 
     # reset datamodule
     # batch-size = 16 because 2 GPUs in DDP
+    seed_everything(234)
     dm = MNISTDataModule(batch_size=16)
     dm.prepare_data()
     dm.setup(stage=None)
@@ -103,8 +100,9 @@ def test_sync_batchnorm_ddp(tmpdir):
 
     trainer = Trainer(
         default_root_dir=tmpdir,
-        gpus=2,
+        accelerator="gpu",
         strategy="ddp_spawn",
+        devices=2,
         max_epochs=1,
         max_steps=3,
         sync_batchnorm=True,
