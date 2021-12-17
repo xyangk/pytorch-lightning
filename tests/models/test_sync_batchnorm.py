@@ -106,7 +106,7 @@ def test_sync_batchnorm_ddp(tmpdir):
         max_epochs=1,
         max_steps=3,
         sync_batchnorm=True,
-        replace_sampler_ddp=False,
+        replace_sampler_ddp=True,
         num_sanity_val_steps=0,
         enable_checkpointing=False,
         enable_model_summary=False,
