@@ -105,7 +105,7 @@ def test_sync_batchnorm_ddp(tmpdir):
     trainer = Trainer(
         default_root_dir=tmpdir,
         gpus=2,
-        strategy="ddp",
+        strategy="ddp_spawn",
         max_epochs=1,
         max_steps=3,
         sync_batchnorm=True,
