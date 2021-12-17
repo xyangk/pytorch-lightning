@@ -138,41 +138,48 @@ class ScheduleWrapper:
 
     @property
     def num_step(self) -> int:
+        if self._current_action is None:
+            return 0
+
         if self.is_training:
             return self._num_optimizer_step_with_closure
-        if self._current_action == "validation_step":
+        if self._current_action.endswith("validation_step"):
             return self._num_validation_step
-        if self._current_action == "test_step":
+        if self._current_action.endswith("test_step"):
             return self._num_test_step
-        if self._current_action == "predict_step":
+        if self._current_action.endswith("predict_step"):
             return self._num_predict_step
-        return 0
 
     def _step(self) -> None:
+        if self._current_action is None:
+            return
+
         if self.is_training:
             self._num_optimizer_step_with_closure += 1
-        elif self._current_action == "validation_step":
-            if self._start_action_name == "on_fit_start":
+        elif self._current_action.endswith("validation_step"):
+            if self._start_action_name.endswith("on_fit_start"):
                 if self._num_optimizer_step_with_closure > 0:
                     self._num_validation_step += 1
             else:
                 self._num_validation_step += 1
-        elif self._current_action == "test_step":
+        elif self._current_action.endswith("test_step"):
             self._num_test_step += 1
-        elif self._current_action == "predict_step":
+        elif self._current_action.endswith("predict_step"):
             self._num_predict_step += 1
 
     @property
     def has_finished(self) -> bool:
+        if self._current_action is None:
+            return False
+
         if self.is_training:
             return self._optimizer_step_with_closure_reached_end
-        if self._current_action == "validation_step":
+        if self._current_action.endswith("validation_step"):
             return self._validation_step_reached_end
-        if self._current_action == "test_step":
+        if self._current_action.endswith("test_step"):
             return self._test_step_reached_end
-        if self._current_action == "predict_step":
+        if self._current_action.endswith("predict_step"):
             return self._predict_step_reached_end
-        return False
 
     def __call__(self, num_step: int) -> "ProfilerAction":
         # ignore the provided input. Keep internal state instead.
@@ -184,11 +191,11 @@ class ScheduleWrapper:
         if action == ProfilerAction.RECORD_AND_SAVE:
             if self.is_training:
                 self._optimizer_step_with_closure_reached_end = True
-            elif self._current_action == "validation_step":
+            elif self._current_action.endswith("validation_step"):
                 self._validation_step_reached_end = True
-            elif self._current_action == "test_step":
+            elif self._current_action.endswith("test_step"):
                 self._test_step_reached_end = True
-            elif self._current_action == "predict_step":
+            elif self._current_action.endswith("predict_step"):
                 self._predict_step_reached_end = True
         return action
 

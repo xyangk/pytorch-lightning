@@ -295,7 +295,7 @@ def test_advanced_profiler_cprofile_deepcopy(tmpdir):
     trainer.fit(model)
 
 
-@RunIf(min_gpus=2, standalone=True)
+@RunIf(min_gpus=2)
 def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
     """Ensure that the profiler can be given to the training and default step are properly recorded."""
     model = BoringModel()
@@ -317,7 +317,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
             "[TrainingTypePlugin]DDPPlugin.training_step",
             "[TrainingTypePlugin]DDPPlugin.backward",
         }
-    print([e.name for e in pytorch_profiler.function_events])
+
     for name in expected:
         assert sum(e.name == name for e in pytorch_profiler.function_events), name
 
@@ -334,7 +334,7 @@ def test_pytorch_profiler_trainer_ddp(tmpdir, pytorch_profiler):
         assert len(files) == 2, files
         local_rank = trainer.local_rank
         assert any(f"{local_rank}-optimizer_step_with_closure_" in f for f in files)
-        assert any(f"{local_rank}-validation_step" in f for f in files)
+        assert any(f"{local_rank}-[TrainingTypePlugin]DDPPlugin.validation_step" in f for f in files)
 
 
 @RunIf(standalone=True)
