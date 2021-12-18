@@ -312,7 +312,7 @@ def test_to_device(accelerator, expected):
             # module
             module = torch.nn.Linear(2, 3)
             module = lite.to_device(module)
-            assert all(param.device == expected for param in module.parameters())
+            assert all(param.device == expected for param in module.parameters()), f"{next(module.parameters()).device}"
 
             # tensor
             tensor = torch.rand(2, 2)
