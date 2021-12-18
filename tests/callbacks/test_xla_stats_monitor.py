@@ -20,6 +20,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import XLAStatsMonitor
 from pytorch_lightning.loggers import CSVLogger
 from pytorch_lightning.loggers.csv_logs import ExperimentWriter
+from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
 from tests.helpers.runif import RunIf
@@ -32,22 +33,25 @@ def test_xla_stats_monitor(tmpdir):
     model = BoringModel()
     with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
         xla_stats = XLAStatsMonitor()
-    logger = CSVLogger(tmpdir)
+
+    class DebugLogger(CSVLogger):
+        @rank_zero_only
+        def log_metrics(self, metrics, step=None) -> None:
+            fields = ["avg. free memory (MB)", "avg. peak memory (MB)"]
+            for f in fields:
+                assert any(f in h for h in metrics.keys())
 
     trainer = Trainer(
-        default_root_dir=tmpdir, max_epochs=2, limit_train_batches=5, tpu_cores=8, callbacks=[xla_stats], logger=logger
+        default_root_dir=tmpdir,
+        max_epochs=2,
+        limit_train_batches=5,
+        tpu_cores=8,
+        callbacks=[xla_stats],
+        logger=DebugLogger(tmpdir),
+        enable_checkpointing=False,
+        enable_progress_bar=False,
     )
-
     trainer.fit(model)
-    assert trainer.state.finished, f"Training failed with {trainer.state}"
-
-    path_csv = os.path.join(logger.log_dir, ExperimentWriter.NAME_METRICS_FILE)
-    met_data = np.genfromtxt(path_csv, delimiter=",", names=True, deletechars="", replace_space=" ")
-
-    fields = ["avg. free memory (MB)", "avg. peak memory (MB)"]
-
-    for f in fields:
-        assert any(f in h for h in met_data.dtype.names)
 
 
 @RunIf(tpu=True)
