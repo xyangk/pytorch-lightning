@@ -30,7 +30,8 @@ def test_xla_stats_monitor(tmpdir):
     """Test XLA stats are logged using a logger."""
 
     model = BoringModel()
-    xla_stats = XLAStatsMonitor()
+    with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
+        xla_stats = XLAStatsMonitor()
     logger = CSVLogger(tmpdir)
 
     trainer = Trainer(
@@ -54,7 +55,8 @@ def test_xla_stats_monitor_no_logger(tmpdir):
     """Test XLAStatsMonitor with no logger in Trainer."""
 
     model = BoringModel()
-    xla_stats = XLAStatsMonitor()
+    with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
+        xla_stats = XLAStatsMonitor()
 
     trainer = Trainer(default_root_dir=tmpdir, callbacks=[xla_stats], max_epochs=1, tpu_cores=[1], logger=False)
 
@@ -67,7 +69,8 @@ def test_xla_stats_monitor_no_tpu_warning(tmpdir):
     """Test XLAStatsMonitor raises a warning when not training on TPUs."""
 
     model = BoringModel()
-    xla_stats = XLAStatsMonitor()
+    with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
+        xla_stats = XLAStatsMonitor()
 
     trainer = Trainer(default_root_dir=tmpdir, callbacks=[xla_stats], max_steps=1, tpu_cores=None)
 
