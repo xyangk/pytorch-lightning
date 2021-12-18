@@ -11,15 +11,11 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-
-import numpy as np
 import pytest
 
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import XLAStatsMonitor
 from pytorch_lightning.loggers import CSVLogger
-from pytorch_lightning.loggers.csv_logs import ExperimentWriter
 from pytorch_lightning.utilities import rank_zero_only
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from tests.helpers import BoringModel
