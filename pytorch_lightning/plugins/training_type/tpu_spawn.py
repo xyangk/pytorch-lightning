@@ -149,7 +149,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def set_world_ranks(self, process_idx: int = 0) -> None:
         self._local_rank = process_idx
-        assert self._local_rank == xm.get_local_ordinal()
+        assert self._local_rank == xm.get_local_ordinal(), f"{xm.get_local_ordinal()}, {process_idx}"
         if self.cluster_environment is None:
             return
         self.cluster_environment.set_global_rank(xm.get_ordinal())
