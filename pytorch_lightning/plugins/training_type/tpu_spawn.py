@@ -148,13 +148,16 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         pass
 
     def set_world_ranks(self, process_idx: int = 0) -> None:
-        self._local_rank = process_idx
-        assert self._local_rank == xm.get_local_ordinal(), f"{xm.get_local_ordinal()}, {process_idx}"
-        if self.cluster_environment is None:
-            return
-        self.cluster_environment.set_global_rank(xm.get_ordinal())
-        self.cluster_environment.set_world_size(xm.xrt_world_size())
-        rank_zero_only.rank = self.cluster_environment.global_rank()
+        # self._local_rank = process_idx
+        #
+        # if self.cluster_environment is None:
+        #     return
+        # self.cluster_environment.set_global_rank(self.node_rank * self.num_processes + self.local_rank)
+        # self.cluster_environment.set_world_size(self.num_nodes * self.num_processes)
+        # self.cluster_environment.set_global_rank(xm.get_ordinal())
+        # rank_zero_only.rank = self.cluster_environment.global_rank()
+        super().set_world_ranks(xm.get_local_ordinal())
+        # assert self._local_rank == xm.get_local_ordinal(), f"{xm.get_local_ordinal()}, {process_idx}"
 
     def model_to_device(self) -> None:
         self.model = self.wrapped_model.to(self.root_device)
