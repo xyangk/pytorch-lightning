@@ -259,6 +259,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def _worker_setup(self, process_idx: int):
         reset_seed()
+        self.set_world_ranks(process_idx)
         rank_zero_only.rank = self.global_rank
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
