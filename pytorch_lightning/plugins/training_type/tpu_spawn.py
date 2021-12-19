@@ -69,21 +69,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
             precision_plugin=precision_plugin,
         )
         self.debug = debug
-        self.tpu_local_core_rank = 0
-        self.tpu_global_core_rank = 0
         self.start_method = None
-
-    @property
-    def global_rank(self) -> int:
-        return self.tpu_global_core_rank
-
-    @property
-    def local_rank(self) -> int:
-        return self.tpu_local_core_rank
-
-    @property
-    def world_size(self) -> int:
-        return xm.xrt_world_size()
 
     @property
     def root_device(self) -> torch.device:
@@ -144,7 +130,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     @property
     def distributed_sampler_kwargs(self) -> Dict[str, int]:
-        return dict(num_replicas=xm.xrt_world_size(), rank=xm.get_ordinal())
+        return dict(num_replicas=self.world_size, rank=self.global_rank)
 
     @property
     def is_distributed(self) -> bool:
@@ -161,11 +147,14 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
     def configure_ddp(self) -> None:
         pass
 
-    def init_dist_connection(self, global_rank: int, world_size: int) -> None:
-        pass
-
     def set_world_ranks(self, process_idx: int = 0) -> None:
-        pass
+        self._local_rank = process_idx
+        assert self._local_rank == xm.get_local_ordinal()
+        if self.cluster_environment is None:
+            return
+        self.cluster_environment.set_global_rank(xm.get_ordinal())
+        self.cluster_environment.set_world_size(xm.xrt_world_size())
+        rank_zero_only.rank = self.cluster_environment.global_rank()
 
     def model_to_device(self) -> None:
         self.model = self.wrapped_model.to(self.root_device)
@@ -270,8 +259,6 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
 
     def _worker_setup(self, process_idx: int):
         reset_seed()
-        self.tpu_local_core_rank = xm.get_local_ordinal()
-        self.tpu_global_core_rank = xm.get_ordinal()
         rank_zero_only.rank = self.global_rank
 
     def validation_step(self, *args, **kwargs) -> Optional[STEP_OUTPUT]:
@@ -303,7 +290,7 @@ class TPUSpawnPlugin(DDPSpawnPlugin):
         # from different vms to the main worker doesn't work well with tqdm
         # Ref: https://github.com/pytorch/xla/blob/master/torch_xla/distributed/xla_dist.py#L140
         # The print statement seems to force tqdm to flush stdout.
-        if self.tpu_global_core_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
+        if self.global_rank == 0 and int(os.getenv(xenv.TPUVM_MODE, 0)) == 1:
             print()
 
     def save_checkpoint(self, checkpoint: Dict[str, Any], filepath: _PATH) -> None:
