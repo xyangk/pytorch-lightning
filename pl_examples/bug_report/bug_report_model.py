@@ -64,16 +64,11 @@ class BoringModel(LightningModule):
         ]
         optimizer = torch.optim.SGD(optim_groups, lr=0.1)
         scheduler = get_scheduler("linear", optimizer, num_warmup_steps=10, num_training_steps=100)
-        return ([optimizer], [{"scheduler": scheduler}])
+        return [optimizer], [{"scheduler": scheduler}]
 
 
 def run():
     model = BoringModel()
-    # checkpoint_callback = ModelCheckpoint(
-    #     dirpath='tests4/checkpoints',
-    #     save_last=True,
-    #     every_n_train_steps=5,
-    # )
     trainer = Trainer(
         default_root_dir=os.getcwd(),
         gpus=2,
@@ -86,12 +81,11 @@ def run():
         log_every_n_steps=10,
         plugins=[DeepSpeedPlugin(stage=2)],
         weights_summary=None,
-        callbacks=[
-            #checkpoint_callback,
-            pl.callbacks.LearningRateMonitor(logging_interval="step")],
         #resume_from_checkpoint='tests4/checkpoints/epoch=1-step=49.ckpt',
     )
     trainer.fit(model)
+
+    print("schedulers", trainer.lr_schedulers)
 
     # test lr_scheduler state
     model_state_path = trainer.checkpoint_callback.best_model_path  # "tests4/checkpoints/epoch=1-step=49.ckptglobal_step50//mp_rank_00_model_states.pt"
@@ -99,12 +93,10 @@ def run():
     model_state = torch.load(model_state_path, map_location="cpu")
     print("state", model_state["lr_scheduler"])
 
-    model_state_path = trainer.checkpoint_callback.best_model_path
-    model_state_path = os.path.join(model_state_path, "global_step50/zero_pp_rank_0_mp_rank_00_optim_states.pt")
-    model_state = torch.load(model_state_path, map_location="cpu")
-    print("state2", model_state.keys())
-
-    #
+    # model_state_path = trainer.checkpoint_callback.best_model_path
+    # model_state_path = os.path.join(model_state_path, "global_step50/zero_pp_rank_0_mp_rank_00_optim_states.pt")
+    # model_state = torch.load(model_state_path, map_location="cpu")
+    # print("state2", model_state.keys())
 
 
 if __name__ == '__main__':
