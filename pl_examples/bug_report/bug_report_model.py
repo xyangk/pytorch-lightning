@@ -1,11 +1,12 @@
 import os
 import torch
 from torch.utils.data import Dataset, DataLoader
-import pytorch_lightning as pl
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.plugins import DeepSpeedPlugin
 from transformers.optimization import get_scheduler
+
+from pytorch_lightning.strategies import DeepSpeedStrategy
+
 
 class RandomDataset(Dataset):
 
@@ -72,16 +73,14 @@ def run():
     trainer = Trainer(
         default_root_dir=os.getcwd(),
         gpus=2,
+        strategy=DeepSpeedStrategy(),
         limit_train_batches=1.0,
         limit_val_batches=1,
         num_sanity_val_steps=0,
         precision=16,
-        accelerator='deepspeed',
         max_steps=50,
         log_every_n_steps=10,
-        plugins=[DeepSpeedPlugin(stage=2)],
-        weights_summary=None,
-        #resume_from_checkpoint='tests4/checkpoints/epoch=1-step=49.ckpt',
+        enable_model_summary=False,
     )
     trainer.fit(model)
 
