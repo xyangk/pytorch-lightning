@@ -486,6 +486,8 @@ class DeepSpeedStrategy(DDPStrategy):
             model.lr_scheduler = None
             lr_scheduler["scheduler"] = deepspeed_scheduler
             self.lightning_module.trainer.lr_schedulers = [lr_scheduler]
+
+        print("_initialize_deepspeed_train", deepspeed_scheduler, model.lr_scheduler)
         self.model = model
 
     @contextlib.contextmanager
