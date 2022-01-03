@@ -66,17 +66,14 @@ class BoringModel(LightningModule):
         scheduler = get_scheduler("linear", optimizer, num_warmup_steps=10, num_training_steps=100)
         return ([optimizer], [{"scheduler": scheduler}])
 
-def run():
-    train_data = DataLoader(RandomDataset(32, 64), batch_size=4)
-    val_data = DataLoader(RandomDataset(32, 64), batch_size=4)
-    test_data = DataLoader(RandomDataset(32, 64), batch_size=4)
 
+def run():
     model = BoringModel()
-    checkpoint_callback = ModelCheckpoint(
-        dirpath='tests4/checkpoints',
-        save_last=True,
-        every_n_train_steps=5,
-    )
+    # checkpoint_callback = ModelCheckpoint(
+    #     dirpath='tests4/checkpoints',
+    #     save_last=True,
+    #     every_n_train_steps=5,
+    # )
     trainer = Trainer(
         default_root_dir=os.getcwd(),
         gpus=2,
@@ -89,16 +86,17 @@ def run():
         log_every_n_steps=10,
         plugins=[DeepSpeedPlugin(stage=2)],
         weights_summary=None,
-        callbacks=[checkpoint_callback, pl.callbacks.LearningRateMonitor(logging_interval="step")],
+        callbacks=[
+            #checkpoint_callback,
+            pl.callbacks.LearningRateMonitor(logging_interval="step")],
         #resume_from_checkpoint='tests4/checkpoints/epoch=1-step=49.ckpt',
     )
     trainer.fit(model)
-    trainer.test(model, dataloaders=test_data)
 
     # test lr_scheduler state
-    model_state_path = "tests4/checkpoints/epoch=1-step=49.ckpt/global_step50/mp_rank_00_model_states.pt"
+    model_state_path = trainer.checkpoint_callback.best_model_path  # "tests4/checkpoints/epoch=1-step=49.ckpt/global_step50/mp_rank_00_model_states.pt"
     model_state = torch.load(model_state_path, map_location="cpu")
-    print(model_state["lr_scheduler"])
+    print("state", model_state["lr_scheduler"])
 
 
 if __name__ == '__main__':
