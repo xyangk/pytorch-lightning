@@ -73,7 +73,7 @@ def run():
     trainer = Trainer(
         default_root_dir=os.getcwd(),
         gpus=2,
-        strategy=DeepSpeedStrategy(),
+        strategy=DeepSpeedStrategy(stage=2),
         limit_train_batches=1.0,
         limit_val_batches=1,
         num_sanity_val_steps=0,
