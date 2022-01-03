@@ -109,7 +109,7 @@ class EvaluationLoop(DataLoaderLoop):
         void(*args, **kwargs)
 
         dataloader_idx = self.current_dataloader_idx
-        dataloader = self.trainer.training_type_plugin.process_dataloader(self.current_dataloader)
+        dataloader = self.trainer.strategy.process_dataloader(self.current_dataloader)
         self.data_fetcher = dataloader = self.trainer._data_connector.get_profiled_dataloader(
             dataloader, dataloader_idx=dataloader_idx
         )
@@ -147,10 +147,9 @@ class EvaluationLoop(DataLoaderLoop):
 
         logged_outputs, self._logged_outputs = self._logged_outputs, []  # free memory
         # include any logged outputs on epoch_end
-        if self.num_dataloaders < 2:  # TODO: remove this check
-            epoch_end_logged_outputs = self.trainer.logger_connector.update_eval_epoch_metrics()
-            for dl_outputs in logged_outputs:
-                dl_outputs.update(epoch_end_logged_outputs)
+        epoch_end_logged_outputs = self.trainer.logger_connector.update_eval_epoch_metrics()
+        for dl_outputs in logged_outputs:
+            dl_outputs.update(epoch_end_logged_outputs)
 
         # log metrics
         self.trainer.logger_connector.log_eval_end_metrics()
@@ -189,7 +188,7 @@ class EvaluationLoop(DataLoaderLoop):
         """Reloads dataloaders if necessary."""
         if self.trainer.testing:
             self.trainer.reset_test_dataloader()
-        elif self.trainer.val_dataloaders is None or self.trainer._should_reload_dl_epoch:
+        elif self.trainer.val_dataloaders is None or self.trainer._should_reload_val_dl:
             self.trainer.reset_val_dataloader()
 
     def _on_evaluation_start(self, *args: Any, **kwargs: Any) -> None:
@@ -200,11 +199,11 @@ class EvaluationLoop(DataLoaderLoop):
         if self.trainer.testing:
             self.trainer._call_callback_hooks("on_test_start", *args, **kwargs)
             self.trainer._call_lightning_module_hook("on_test_start", *args, **kwargs)
-            self.trainer._call_ttp_hook("on_test_start", *args, **kwargs)
+            self.trainer._call_strategy_hook("on_test_start", *args, **kwargs)
         else:
             self.trainer._call_callback_hooks("on_validation_start", *args, **kwargs)
             self.trainer._call_lightning_module_hook("on_validation_start", *args, **kwargs)
-            self.trainer._call_ttp_hook("on_validation_start", *args, **kwargs)
+            self.trainer._call_strategy_hook("on_validation_start", *args, **kwargs)
 
     def _on_evaluation_model_eval(self) -> None:
         """Sets model to eval mode."""
@@ -225,11 +224,11 @@ class EvaluationLoop(DataLoaderLoop):
         if self.trainer.testing:
             self.trainer._call_callback_hooks("on_test_end", *args, **kwargs)
             self.trainer._call_lightning_module_hook("on_test_end", *args, **kwargs)
-            self.trainer._call_ttp_hook("on_test_end", *args, **kwargs)
+            self.trainer._call_strategy_hook("on_test_end", *args, **kwargs)
         else:
             self.trainer._call_callback_hooks("on_validation_end", *args, **kwargs)
             self.trainer._call_lightning_module_hook("on_validation_end", *args, **kwargs)
-            self.trainer._call_ttp_hook("on_validation_end", *args, **kwargs)
+            self.trainer._call_strategy_hook("on_validation_end", *args, **kwargs)
 
         # reset the logger connector state
         self.trainer.logger_connector.reset_results()

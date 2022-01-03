@@ -15,7 +15,6 @@ import torch
 from torchmetrics.functional import accuracy
 
 from pytorch_lightning import LightningDataModule, LightningModule, Trainer
-from pytorch_lightning.utilities import _StrategyType
 from tests.helpers import BoringModel
 from tests.helpers.utils import get_default_logger, load_model_from_checkpoint, reset_seed
 
@@ -41,7 +40,7 @@ def run_model_test_without_loggers(
 
     if not isinstance(model2, BoringModel):
         for dataloader in test_loaders:
-            run_prediction_eval_model_template(model2, dataloader, min_acc=min_acc)
+            run_model_prediction(model2, dataloader, min_acc=min_acc)
 
 
 def run_model_test(
@@ -70,7 +69,7 @@ def run_model_test(
     assert change_ratio > 0.03, f"the model is changed of {change_ratio}"
 
     # test model loading
-    pretrained_model = load_model_from_checkpoint(logger, trainer.checkpoint_callback.best_model_path, type(model))
+    _ = load_model_from_checkpoint(logger, trainer.checkpoint_callback.best_model_path, type(model))
 
     # test new model accuracy
     test_loaders = model.test_dataloader() if not data else data.test_dataloader()
@@ -79,15 +78,9 @@ def run_model_test(
 
     if not isinstance(model, BoringModel):
         for dataloader in test_loaders:
-            run_prediction_eval_model_template(model, dataloader, min_acc=min_acc)
+            run_model_prediction(model, dataloader, min_acc=min_acc)
 
     if with_hpc:
-        if trainer._distrib_type in (_StrategyType.DDP, _StrategyType.DDP_SPAWN, _StrategyType.DDP2):
-            # on hpc this would work fine... but need to hack it for the purpose of the test
-            trainer.optimizers, trainer.lr_schedulers, trainer.optimizer_frequencies = trainer.init_optimizers(
-                pretrained_model
-            )
-
         # test HPC saving
         trainer.checkpoint_connector.hpc_save(save_dir, logger)
         # test HPC loading
@@ -96,7 +89,7 @@ def run_model_test(
 
 
 @torch.no_grad()
-def run_prediction_eval_model_template(trained_model, dataloader, min_acc=0.50):
+def run_model_prediction(trained_model, dataloader, min_acc=0.50):
     orig_device = trained_model.device
     # run prediction on 1 batch
     trained_model.cpu()
