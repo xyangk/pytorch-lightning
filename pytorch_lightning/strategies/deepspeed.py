@@ -735,6 +735,7 @@ class DeepSpeedStrategy(DDPStrategy):
             checkpoint: The checkpoint state dictionary
             filepath: write-target file's path
         """
+        # optimization_by_lightning = "optimizer" not in self.config
         if self.zero_stage_3 and self._multi_device and self.is_global_zero:
             warning_cache.warn(
                 "When saving the DeepSpeed Stage 3 checkpoint, "
@@ -745,12 +746,13 @@ class DeepSpeedStrategy(DDPStrategy):
             )
         # Use deepspeed's internal checkpointing function to handle partitioned weights across processes
         # dump states as a checkpoint dictionary object
-        _exclude_keys = ["state_dict", "optimizer_states", "lr_schedulers"]
+        _exclude_keys = ["state_dict", "optimizer_states"]
         checkpoint = {k: v for k, v in checkpoint.items() if k not in _exclude_keys}
         print("lr_scheduler state dict", self.deepspeed_engine.lr_scheduler.state_dict())
         self.deepspeed_engine.save_checkpoint(filepath, client_state=checkpoint)
 
     def load_checkpoint(self, checkpoint_path: _PATH) -> Dict[str, Any]:
+
         if self.load_full_weights and self.zero_stage_3:
             # Broadcast to ensure we load from the rank 0 checkpoint
             # This doesn't have to be the case when using deepspeed sharded checkpointing
