@@ -90,12 +90,12 @@ def run():
     model_state_path = trainer.checkpoint_callback.best_model_path  # "tests4/checkpoints/epoch=1-step=49.ckptglobal_step50//mp_rank_00_model_states.pt"
     model_state_path = os.path.join(model_state_path, "global_step50/mp_rank_00_model_states.pt")
     model_state = torch.load(model_state_path, map_location="cpu")
-    print("state", model_state["lr_scheduler"])
+    print("state", model_state.keys())
 
-    # model_state_path = trainer.checkpoint_callback.best_model_path
-    # model_state_path = os.path.join(model_state_path, "global_step50/zero_pp_rank_0_mp_rank_00_optim_states.pt")
-    # model_state = torch.load(model_state_path, map_location="cpu")
-    # print("state2", model_state.keys())
+    model_state_path = trainer.checkpoint_callback.best_model_path
+    model_state_path = os.path.join(model_state_path, "global_step50/zero_pp_rank_0_mp_rank_00_optim_states.pt")
+    model_state = torch.load(model_state_path, map_location="cpu")
+    print("state2", model_state.keys())
 
 
 if __name__ == '__main__':
