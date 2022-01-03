@@ -406,6 +406,7 @@ class DeepSpeedStrategy(DDPStrategy):
         This calls :func:`deepspeed.initialize` internally.
         """
         model_parameters = filter(lambda p: p.requires_grad, model.parameters())
+        print("passed scheduler", lr_scheduler)
         deepspeed_engine, deepspeed_optimizer, _, _ = deepspeed.initialize(
             args=argparse.Namespace(device_rank=self.root_device.index),
             config=self.config,
@@ -415,6 +416,7 @@ class DeepSpeedStrategy(DDPStrategy):
             lr_scheduler=lr_scheduler,
             dist_init_required=False,
         )
+        print("engine_scheduler", deepspeed_engine.lr_scheduler)
         return deepspeed_engine, deepspeed_optimizer
 
     def init_deepspeed(self):
@@ -757,7 +759,7 @@ class DeepSpeedStrategy(DDPStrategy):
 
         is_fitting = self.lightning_module.trainer.state.fn == TrainerFn.FITTING
         _, client_state = self.deepspeed_engine.load_checkpoint(
-            checkpoint_path, load_optimizer_states=is_fitting, load_lr_scheduler_states=True
+            checkpoint_path, load_optimizer_states=is_fitting, load_lr_scheduler_states=is_fitting
         )
         if client_state is None:
             raise MisconfigurationException(
