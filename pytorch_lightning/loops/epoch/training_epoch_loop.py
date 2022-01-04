@@ -366,9 +366,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # Lightning steps on the final batch
         is_final_batch = self._num_ready_batches_reached()
         # but the TTP might not
-        ttp_accumulates_on_final_batch = (
-            self.trainer.training_type_plugin.handles_gradient_accumulation or not is_final_batch
-        )
+        ttp_accumulates_on_final_batch = self.trainer.strategy.handles_gradient_accumulation or not is_final_batch
         return not accumulation_done and ttp_accumulates_on_final_batch
 
     @staticmethod
@@ -470,7 +468,7 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
             opt_indices = []
 
         for lr_scheduler in self.trainer.lr_schedulers:
-            if isinstance(lr_scheduler["opt_idx"], int) and lr_scheduler["opt_idx"] not in opt_indices:
+            if lr_scheduler["opt_idx"] not in opt_indices:
                 continue
 
             if update_plateau_schedulers ^ lr_scheduler["reduce_on_plateau"]:
