@@ -158,7 +158,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         # self.cluster_environment.set_global_rank(xm.get_ordinal())
         # rank_zero_only.rank = self.cluster_environment.global_rank()
         super().set_world_ranks(xm.get_local_ordinal())
-        # assert self._local_rank == xm.get_local_ordinal(), f"{xm.get_local_ordinal()}, {process_idx}"
+        assert self._local_rank == xm.get_local_ordinal(), f"{xm.get_local_ordinal()}, {process_idx}"
 
     def model_to_device(self) -> None:
         self.model = self.wrapped_model.to(self.root_device)
