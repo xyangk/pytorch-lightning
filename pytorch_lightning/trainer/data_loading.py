@@ -49,7 +49,6 @@ class TrainerDataLoadingMixin(ABC):
     #  the proper values/initialisation should be done in child class
     val_check_interval: float
     reload_dataloaders_every_n_epochs: int
-    tpu_local_core_rank: int
     train_dataloader: DataLoader
     limit_train_batches: Union[int, float]
     num_training_batches: int
