@@ -267,6 +267,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
     def _worker_setup(self, process_idx: int):
         reset_seed()
+        assert process_idx == xm.get_local_ordinal(), f"{xm.get_local_ordinal()}, {process_idx}"
         self.set_world_ranks(process_idx)
         rank_zero_only.rank = self.global_rank
 
