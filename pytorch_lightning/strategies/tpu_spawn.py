@@ -24,11 +24,9 @@ from torch.utils.data import DataLoader
 
 import pytorch_lightning as pl
 from pytorch_lightning.overrides import LightningDistributedModule
-from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.io.xla_plugin import XLACheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
-from pytorch_lightning.strategies.ddp_spawn import _FakeQueue, _SpawnOutput
-from pytorch_lightning.strategies import DDPSpawnStrategy
+from pytorch_lightning.strategies.ddp_spawn import _FakeQueue, _SpawnOutput, DDPSpawnStrategy
 from pytorch_lightning.trainer.connectors.data_connector import DataConnector
 from pytorch_lightning.trainer.states import TrainerFn
 from pytorch_lightning.utilities import _TPU_AVAILABLE, find_shared_parameters, set_shared_parameters
@@ -57,7 +55,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self,
         accelerator: Optional["pl.accelerators.accelerator.Accelerator"] = None,
         parallel_devices: Optional[List[int]] = None,
-        checkpoint_io: Optional[CheckpointIO] = None,
+        checkpoint_io: Optional[XLACheckpointIO] = None,
         precision_plugin: Optional[PrecisionPlugin] = None,
         debug: bool = False,
         **_: Any,
@@ -70,7 +68,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             precision_plugin=precision_plugin,
         )
         self.debug = debug
-        self.start_method = None
+        self.start_method = "fork"
 
     @property
     def root_device(self) -> torch.device:
@@ -107,8 +105,13 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         self.wrapped_model = xmp.MpModelWrapper(LightningDistributedModule(model))
         return super().connect(model)
 
-    def pre_dispatch(self, trainer: "pl.Trainer") -> None:
+    def setup(self, trainer: "pl.Trainer") -> None:
+        self.start_method = "fork"
+        self.accelerator.setup(trainer)
+        self.setup_optimizers(trainer)
+        self.setup_precision_plugin()
         self._move_optimizer_state()
+
         if self.debug:
             os.environ["PT_XLA_DEBUG"] = str(1)
 
@@ -121,10 +124,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
 
         self.setup_optimizers(trainer)
         self.precision_plugin.connect(self.model, None, None)
-
-    def setup(self, trainer: "pl.Trainer") -> None:
-        self.start_method = "fork"
-        super().setup(trainer)
 
     def _setup_model(self, model: Module) -> Module:
         return model
@@ -220,7 +219,7 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         _invalid_reduce_op_str = isinstance(reduce_op, str) and reduce_op.lower() not in ("sum", "mean", "avg")
         if _invalid_reduce_op or _invalid_reduce_op_str:
             raise MisconfigurationException(
-                "Currently, TPUSpawn TrainingTypePlugin only support `sum`, `mean`, `avg` reduce operation."
+                "Currently, TPUSpawn Strategy only support `sum`, `mean`, `avg` reduce operation."
             )
 
         output = xm.mesh_reduce("reduce", output, sum)
@@ -237,9 +236,6 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         }
 
     def spawn(self, function: Callable, *args: Any, **kwargs: Any) -> Optional[Union[Any, "_SpawnOutput"]]:
-        # todo: precision pluging is call in accelerator setup and should be moved
-        if "XLA_USE_BF16" in os.environ:
-            del os.environ["XLA_USE_BF16"]
         context = mp.get_context(self.start_method or "fork")
         return_queue = context.SimpleQueue()
         xmp.spawn(self._wrapped_function, args=(function, args, kwargs, return_queue), **self.get_mp_spawn_kwargs())
@@ -305,7 +301,17 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
             checkpoint: dict containing model and trainer state
             filepath: write-target file's path
         """
-        return self.checkpoint_io.save_checkpoint(checkpoint, filepath)
+        # `xla_model.save` needs to be called on all ranks. It internally checks if the local rank is 0
+        self.checkpoint_io.save_checkpoint(checkpoint, filepath)
+
+    def remove_checkpoint(self, filepath: _PATH) -> None:
+        """Remove checkpoint filepath from the filesystem.
+
+        Args:
+            filepath: Path to checkpoint
+        """
+        if self.local_rank == 0:
+            self.checkpoint_io.remove_checkpoint(filepath)
 
     def all_gather(self, tensor: torch.Tensor, group: Optional[Any] = None, sync_grads: bool = False) -> torch.Tensor:
         """
@@ -322,20 +328,11 @@ class TPUSpawnStrategy(DDPSpawnStrategy):
         return xm.all_gather(tensor)
 
     def teardown(self) -> None:
+        super().teardown()
         os.environ.pop("PT_XLA_DEBUG", None)
-
-    @property
-    def should_rank_save_checkpoint(self) -> bool:
-        return self.local_rank == 0
 
     @classmethod
     def register_plugins(cls, plugin_registry: Dict) -> None:
-        plugin_registry.register("tpu_spawn_debug", cls, description="TPUSpawn Plugin with `debug` as True", debug=True)
-
-    @property
-    def checkpoint_io(self) -> CheckpointIO:
-        return self._checkpoint_io
-
-    @checkpoint_io.setter
-    def checkpoint_io(self, plugin: CheckpointIO) -> None:
-        raise MisconfigurationException("TPU Spawn Plugin currently does not support custom checkpoint plugins.")
+        plugin_registry.register(
+            "tpu_spawn_debug", cls, description="TPUSpawn Strategy with `debug` as True", debug=True
+        )
