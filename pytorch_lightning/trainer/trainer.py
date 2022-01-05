@@ -1080,6 +1080,8 @@ class Trainer(
 
             method: Method to run tuner on. It can be ``'fit', 'validate', 'test', 'predict'``
         """
+        Trainer._log_api_event("tune")
+
         result = self.tuner._tune(
             model,
             train_dataloaders,
