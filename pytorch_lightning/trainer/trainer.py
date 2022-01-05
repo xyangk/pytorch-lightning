@@ -43,12 +43,9 @@ from pytorch_lightning.loops.fit_loop import FitLoop
 from pytorch_lightning.loops.utilities import _parse_loop_limits, _reset_progress
 from pytorch_lightning.plugins import (
     ApexMixedPrecisionPlugin,
-    DDPSpawnStrategy,
     NativeMixedPrecisionPlugin,
-    ParallelStrategy,
     PLUGIN_INPUT,
     PrecisionPlugin,
-    Strategy,
 )
 from pytorch_lightning.plugins.environments.slurm_environment import SLURMEnvironment
 from pytorch_lightning.profiler import (
@@ -59,7 +56,8 @@ from pytorch_lightning.profiler import (
     SimpleProfiler,
     XLAProfiler,
 )
-from pytorch_lightning.strategies.ddp_spawn import _SpawnOutput
+from pytorch_lightning.strategies import ParallelStrategy, Strategy
+from pytorch_lightning.strategies.ddp_spawn import _SpawnOutput, DDPSpawnStrategy
 from pytorch_lightning.trainer.callback_hook import TrainerCallbackHookMixin
 from pytorch_lightning.trainer.configuration_validator import verify_loop_configurations
 from pytorch_lightning.trainer.connectors.accelerator_connector import AcceleratorConnector
@@ -1383,16 +1381,22 @@ class Trainer(
             ckpt_path = "best"
 
         if ckpt_path == "best":
-            # if user requests the best checkpoint but we don't have it, error
+            if len(self.checkpoint_callbacks) > 1:
+                rank_zero_warn(
+                    f'`.{fn}(ckpt_path="best")` is called with Trainer configured with multiple `ModelCheckpoint`'
+                    " callbacks. It will use the best checkpoint path from first checkpoint callback."
+                )
+
             if not self.checkpoint_callback:
                 raise MisconfigurationException(
                     f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured.'
                 )
+
             if not self.checkpoint_callback.best_model_path:
                 if self.fast_dev_run:
                     raise MisconfigurationException(
-                        f"You cannot execute `.{fn}()` with `fast_dev_run=True` unless you do"
-                        f" `.{fn}(ckpt_path=PATH)` as no checkpoint path was generated during fitting."
+                        f'You cannot execute `.{fn}(ckpt_path="best")` with `fast_dev_run=True`.'
+                        f" Please pass an exact checkpoint path to `.{fn}(ckpt_path=...)`"
                     )
                 raise MisconfigurationException(
                     f'`.{fn}(ckpt_path="best")` is set but `ModelCheckpoint` is not configured to save the best model.'
@@ -1788,7 +1792,7 @@ class Trainer(
             "`Trainer.should_rank_save_checkpoint` is deprecated in v1.6 and will be removed in v1.8.", stacklevel=5
         )
         ttp = self.strategy
-        return isinstance(ttp, pl.plugins.TPUSpawnStrategy) and ttp.local_rank == 0 or ttp.is_global_zero
+        return isinstance(ttp, pl.strategies.TPUSpawnStrategy) and ttp.local_rank == 0 or ttp.is_global_zero
 
     @property
     def _distrib_type(self) -> _StrategyType:
