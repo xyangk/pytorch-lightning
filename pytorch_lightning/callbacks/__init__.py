@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 from pytorch_lightning.callbacks.base import Callback
+from pytorch_lightning.callbacks.batch_size_finder import BatchSizeFinder
 from pytorch_lightning.callbacks.device_stats_monitor import DeviceStatsMonitor
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks.finetuning import BackboneFinetuning, BaseFinetuning
@@ -33,6 +34,8 @@ from pytorch_lightning.callbacks.xla_stats_monitor import XLAStatsMonitor
 __all__ = [
     "BackboneFinetuning",
     "BaseFinetuning",
+    "BasePredictionWriter",
+    "BatchSizeFinder",
     "Callback",
     "DeviceStatsMonitor",
     "EarlyStopping",
@@ -44,7 +47,6 @@ __all__ = [
     "ModelCheckpoint",
     "ModelPruning",
     "ModelSummary",
-    "BasePredictionWriter",
     "ProgressBar",
     "ProgressBarBase",
     "QuantizationAwareTraining",
