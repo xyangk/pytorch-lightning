@@ -15,6 +15,7 @@
 
 import logging
 import os
+from contextlib import nullcontext
 from functools import wraps
 from platform import python_version
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
@@ -235,10 +236,9 @@ def all_gather_ddp_if_available(
     """
     if not distributed_available():
         return tensor
-    if sync_grads:
-        return distributed_nn.functional.all_gather(tensor, group=group)
-    with torch.no_grad():
-        return distributed_nn.functional.all_gather(tensor, group=group)
+    with nullcontext() if sync_grads else torch.no_grad():
+        gathered_tensors = distributed_nn.functional.all_gather(tensor, group=group)
+    return torch.stack(gathered_tensors)
 
 
 def register_ddp_comm_hook(
