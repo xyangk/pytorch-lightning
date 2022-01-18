@@ -30,7 +30,9 @@ if _TPU_AVAILABLE:
     import torch_xla.core.xla_model as xm
 
 if torch.distributed.is_available():
-    from torch.distributed import group, ReduceOp
+    from torch.distributed import group
+    from torch.distributed import nn as distributed_nn
+    from torch.distributed import ReduceOp
 
 else:
 
@@ -184,19 +186,29 @@ def sync_ddp(
 
 
 class AllGatherGrad(torch.autograd.Function):
+    """Gathers tensors from the whole group and stacks them.
+
+    .. deprecated:: v1.6     This function has been deprecated in v1.6 in favor of :func:`torch.distributed.all_gather`
+    and will be removed in v1.8.
+    """
+
     @staticmethod
     def forward(
         ctx: Any,
         tensor: torch.Tensor,
         group: Optional["torch.distributed.ProcessGroup"] = group.WORLD,
     ) -> torch.Tensor:
+        from pytorch_lightning.utilities.warnings import rank_zero_deprecation
+
+        rank_zero_deprecation(
+            "`AllGatherGrad` has been deprecated in v1.6 and will be removed in v1.8."
+            " Use `torch.distributed.all_gather` instead."
+        )
+
         ctx.group = group
-
         gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())]
-
         torch.distributed.all_gather(gathered_tensor, tensor, group=group)
         gathered_tensor = torch.stack(gathered_tensor, dim=0)
-
         return gathered_tensor
 
     @staticmethod
@@ -221,13 +233,12 @@ def all_gather_ddp_if_available(
     Return:
         A tensor of shape (world_size, batch, ...)
     """
-    group = group if group is not None else torch.distributed.group.WORLD
-    if distributed_available():
-        if sync_grads:
-            return AllGatherGrad.apply(tensor, group)
-        with torch.no_grad():
-            return AllGatherGrad.apply(tensor, group)
-    return tensor
+    if not distributed_available():
+        return tensor
+    if sync_grads:
+        return distributed_nn.functional.all_gather(tensor, group=group)
+    with torch.no_grad():
+        return distributed_nn.functional.all_gather(tensor, group=group)
 
 
 def register_ddp_comm_hook(

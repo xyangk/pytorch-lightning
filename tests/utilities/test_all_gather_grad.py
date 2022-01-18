@@ -15,6 +15,7 @@ import os
 import sys
 
 import numpy as np
+import pytest
 import torch
 
 from pytorch_lightning import seed_everything, Trainer
@@ -38,8 +39,10 @@ def _test_all_gather_ddp(rank, world_size):
     tensor1 = torch.ones(8, requires_grad=True)
     tensor2 = torch.ones((8, 16, 32), requires_grad=True)
 
-    tensor1_gathered = AllGatherGrad.apply(tensor1)
-    tensor2_gathered = AllGatherGrad.apply(tensor2)
+    with pytest.deprecated_call(match="AllGatherGrad` has been deprecated in v1.6"):
+        tensor1_gathered = AllGatherGrad.apply(tensor1)
+    with pytest.deprecated_call(match="AllGatherGrad` has been deprecated in v1.6"):
+        tensor2_gathered = AllGatherGrad.apply(tensor2)
 
     tensor1_gathered = tensor1_gathered * rank
     tensor2_gathered = tensor2_gathered * rank

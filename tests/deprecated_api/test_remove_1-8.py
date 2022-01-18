@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Test deprecated functionality which will be removed in v1.8.0."""
+from unittest import mock
 from unittest.mock import Mock
 
 import pytest
@@ -32,7 +33,7 @@ from pytorch_lightning.plugins.training_type.single_device import SingleDevicePl
 from pytorch_lightning.plugins.training_type.single_tpu import SingleTPUPlugin
 from pytorch_lightning.plugins.training_type.tpu_spawn import TPUSpawnPlugin
 from pytorch_lightning.trainer.states import RunningStage
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities import AllGatherGrad, rank_zero_warn
 from pytorch_lightning.utilities.apply_func import move_data_to_device
 from pytorch_lightning.utilities.enums import DeviceType, DistributedType
 from pytorch_lightning.utilities.imports import _TORCHTEXT_LEGACY
@@ -351,3 +352,13 @@ def test_v1_8_0_deprecated_lightning_optimizers():
         match="Trainer.lightning_optimizers` is deprecated in v1.6 and will be removed in v1.8"
     ):
         assert trainer.lightning_optimizers == {}
+
+
+@RunIf(skip_windows=True)
+@mock.patch("torch.distributed.all_gather")
+@mock.patch("torch.distributed.get_world_size", return_value=1)
+def test_v1_8_0_deprecated_all_gather_grad(*_):
+    tensor1 = torch.ones(1, requires_grad=True)
+
+    with pytest.deprecated_call(match="`AllGatherGrad` has been deprecated in v1.6"):
+        AllGatherGrad.apply(tensor1)
