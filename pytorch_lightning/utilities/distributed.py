@@ -207,9 +207,12 @@ class AllGatherGrad(torch.autograd.Function):
         )
 
         ctx.group = group
+
         gathered_tensor = [torch.zeros_like(tensor) for _ in range(torch.distributed.get_world_size())]
+
         torch.distributed.all_gather(gathered_tensor, tensor, group=group)
         gathered_tensor = torch.stack(gathered_tensor, dim=0)
+
         return gathered_tensor
 
     @staticmethod
