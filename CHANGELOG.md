@@ -272,6 +272,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 - Deprecated `TrainerCallbackHookMixin` ([#11148](https://github.com/PyTorchLightning/pytorch-lightning/pull/11148))
 
 
+- Deprecated custom `pl.utilities.distributed.AllGatherGrad` implementation in favor of PyTorch's ([#11531](https://github.com/PyTorchLightning/pytorch-lightning/pull/11531))
+
+
 - Deprecated `TrainerDataLoadingMixin` and moved functionality to `Trainer` and `DataConnector` ([#11282](https://github.com/PyTorchLightning/pytorch-lightning/pull/11282))
 
 
