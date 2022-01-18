@@ -189,8 +189,11 @@ def sync_ddp(
 class AllGatherGrad(torch.autograd.Function):
     """Gathers tensors from the whole group and stacks them.
 
-    .. deprecated:: v1.6     This function has been deprecated in v1.6 in favor of :func:`torch.distributed.all_gather`
-    and will be removed in v1.8.
+    This implementation is copied from PyTorch.
+
+    .. deprecated:: v1.6
+        This function has been deprecated in v1.6 in favor of :func:`distributed_nn.functional.all_gather` and will be
+        removed in v1.8.
     """
 
     @staticmethod
