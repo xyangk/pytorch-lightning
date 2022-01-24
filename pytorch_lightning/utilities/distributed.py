@@ -384,7 +384,7 @@ def init_dist_connection(
             f"{'-' * 100}\n"
             f"distributed_backend={torch_distributed_backend}\n"
             f"All distributed processes registered. Starting with {world_size} processes\n"
-            f"{'-' * 100}\n"
+            f"{'-' * 100}"
         )
 
 
