@@ -108,9 +108,8 @@ class EvaluationEpochLoop(Loop):
         void(dl_max_batches)
 
         assert self._dataloader_iter is not None
-        batch, self.batch_progress.is_last_batch = next(self._dataloader_iter)
-        if batch is None:
-            raise StopIteration
+        batch = next(self._dataloader_iter)
+        self.batch_progress.is_last_batch = self._dataloader_iter.done
 
         # configure step_kwargs
         kwargs = self._build_kwargs(kwargs, batch)

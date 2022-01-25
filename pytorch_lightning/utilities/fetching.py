@@ -173,7 +173,7 @@ class AbstractDataFetcher(ABC):
 
         apply_to_collection(self.loaders, (DataLoader, CycleIterator), _attach_data_fetcher_fn)
 
-    def __iter__(self) -> Generator[Tuple[Any, bool], None, None]:
+    def __iter__(self) -> Generator[Any, None, None]:
         if self.dataloader is None:
             raise MisconfigurationException("The iterate hasn't been provided. HINT: Did you call setup function ?.")
         self.reset()
@@ -233,7 +233,7 @@ class DataFetcher(AbstractDataFetcher):
             except StopIteration:
                 break
 
-    def fetching_function(self) -> Tuple[Any, bool]:
+    def fetching_function(self) -> Any:
         assert self.dataloader_iter is not None
         if self.batches:
             # we pre-fetched, consume one
@@ -254,7 +254,7 @@ class DataFetcher(AbstractDataFetcher):
         else:
             raise StopIteration
         self.wait()
-        return self.move_to_device(batch), self.done
+        return self.move_to_device(batch)
 
     def _fetch_next_batch(self, iterator: Iterator) -> None:
         start_output = self.on_fetch_start()
@@ -362,7 +362,7 @@ class DataLoaderIterDataFetcher(AbstractDataFetcher):
     def prefetching(self) -> None:
         self.iterator = iter(StepFuncDataLoaderIter(self.dataloader_iter, self))
 
-    def fetching_function(self) -> Tuple[int, Tuple[Iterator, bool]]:
+    def fetching_function(self) -> Tuple[int, Iterator]:
         if not self.done:
-            return self.fetched, (self.iterator, self.done)
+            return self.fetched, self.iterator
         raise StopIteration

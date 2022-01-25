@@ -149,11 +149,12 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         self.val_loop.restarting = False
 
         assert self._dataloader_iter is not None
-        if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
-            batch_idx = self.batch_idx + 1
-            batch, self.batch_progress.is_last_batch = next(self._dataloader_iter)
-        else:
-            batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
+        batch_idx, batch = (
+            next(self._dataloader_iter)
+            if isinstance(data_fetcher, DataLoaderIterDataFetcher)
+            else (self.batch_idx + 1, next(self._dataloader_iter))
+        )
+        self.batch_progress.is_last_batch = self._dataloader_iter.done
 
         self.batch_progress.increment_ready()
 
