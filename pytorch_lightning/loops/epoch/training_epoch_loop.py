@@ -134,7 +134,11 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
 
     def on_run_start(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
         self._reload_dataloader_state_dict(data_fetcher)
-        self._dataloader_iter = iter(data_fetcher)
+        if True:
+            self._dataloader_iter = iter(data_fetcher)
+        else:
+            self._dataloader_iter = enumerate(iter(data_fetcher.dataloader.loaders))
+
 
     def advance(self, data_fetcher: AbstractDataFetcher) -> None:  # type: ignore[override]
         """Runs a single training batch.
@@ -148,12 +152,21 @@ class TrainingEpochLoop(loops.Loop[_OUTPUTS_TYPE]):
         # we are going to train first so the val loop does not need to restart
         self.val_loop.restarting = False
 
-        assert self._dataloader_iter is not None
-        if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
-            batch_idx = self.batch_idx + 1
-            batch, self.batch_progress.is_last_batch = next(self._dataloader_iter)
+        if True:
+            if not isinstance(data_fetcher, DataLoaderIterDataFetcher):
+                batch_idx = self.batch_idx + 1
+                batch, self.batch_progress.is_last_batch = next(self._dataloader_iter)
+            else:
+                batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
         else:
-            batch_idx, (batch, self.batch_progress.is_last_batch) = next(self._dataloader_iter)
+            try:
+                batch_idx, batch = next(self._dataloader_iter)
+                batch = self.trainer._call_strategy_hook("batch_to_device", batch, dataloader_idx=0)
+                self.batch_progress.is_last_batch = False
+            except StopIteration:
+                self.batch_progress.is_last_batch = True
+                raise StopIteration
+
 
         self.batch_progress.increment_ready()
 
