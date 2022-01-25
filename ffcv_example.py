@@ -5,10 +5,8 @@ from time import perf_counter
 from typing import Tuple
 
 import torch
-from torch.utils.data import DataLoader, Dataset
-
 from pytorch_lightning import LightningModule, Trainer
-from pytorch_lightning.callbacks.progress import TQDMProgressBar
+from torch.utils.data import DataLoader, Dataset
 
 
 class RandomFFCVDataset(Dataset):
@@ -43,6 +41,7 @@ class BoringModel(LightningModule):
         self.layer = torch.nn.Linear(d, 1)
 
     def forward(self, x):
+        # return a tuple: https://github.com/libffcv/ffcv/issues/103
         if isinstance(x, tuple):
             x = x[0]
         return self.layer(x)
@@ -59,6 +58,9 @@ class BoringModel(LightningModule):
     def test_step(self, batch, batch_idx):
         loss = self(batch).sum()
         self.log("test_loss", loss)
+
+    # def on_train_epoch_end(self):
+    #     print(torch.cuda.memory_summary(self.device))
 
     def configure_optimizers(self):
         return torch.optim.SGD(self.layer.parameters(), lr=0.1)
