@@ -86,6 +86,23 @@ def test_connect_loops_recursive():
     assert child1.trainer is trainer
 
 
+def test_restarting_loops_recursive():
+    class MyLoop(NestedLoop):
+        def __init__(self, loop=None):
+            super().__init__()
+            self.child = loop
+
+    loop = MyLoop(MyLoop(MyLoop()))
+
+    assert not loop.restarting
+    assert not loop.child.restarting
+    assert not loop.child.child.restarting
+    loop.restarting = True
+    assert loop.restarting
+    assert loop.child.restarting
+    assert loop.child.child.restarting
+
+
 def test_connect_subloops(tmpdir):
     """Test connecting individual subloops by calling `trainer.x.y.connect()`"""
     model = BoringModel()
@@ -344,7 +361,8 @@ def test_loop_restart_progress_multiple_dataloaders(tmpdir, n_dataloaders, stop_
     trainer.fit_loop.load_state_dict(checkpoint)
 
     # `nbe_`: non-breaking epoch, as in, no exception will be raised. `be_`: breaking epoch
-    nbe_total_val_batch = stop_epoch * n_dataloaders * n_batches
+    # the fit-validation total batch progress is reset per epoch so it's not counted for the total value.
+    nbe_total_val_batch = 0  # stop_epoch * n_dataloaders * n_batches
     be_total_val_batch = stop_dataloader * n_batches + stop_batch
     total_val_batch = nbe_total_val_batch + be_total_val_batch
     expected = {

@@ -43,7 +43,7 @@ def test_loops_state_dict():
 def test_loops_state_dict_structure():
     trainer = Trainer()
     trainer.train_dataloader = Mock()
-    state_dict = trainer.checkpoint_connector._get_loops_state_dict()
+    state_dict = trainer._checkpoint_connector._get_loops_state_dict()
     expected = {
         "fit_loop": {
             "state_dict": {},
@@ -77,7 +77,9 @@ def test_loops_state_dict_structure():
             },
             "epoch_loop.val_loop.epoch_loop.state_dict": {},
             "epoch_loop.val_loop.epoch_loop.batch_progress": {
+                # number of batches across validation runs per epoch
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                # number of batches for this validation run
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "is_last_batch": False,
             },
@@ -107,7 +109,9 @@ def test_loops_state_dict_structure():
             "dataloader_progress": {"total": {"ready": 0, "completed": 0}, "current": {"ready": 0, "completed": 0}},
             "epoch_loop.state_dict": {},
             "epoch_loop.batch_progress": {
+                # total batches run by `validate`
                 "total": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
+                # number of batches run by this `validate` call
                 "current": {"ready": 0, "started": 0, "processed": 0, "completed": 0},
                 "is_last_batch": False,
             },

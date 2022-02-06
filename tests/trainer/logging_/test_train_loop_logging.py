@@ -91,6 +91,9 @@ def test__training_step__log(tmpdir):
     assert pbar_metrics == {"p_e", "p_s", "p_se_step", "p_se_epoch"}
 
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"p_se", "l_se"})
+    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
 def test__training_step__epoch_end__log(tmpdir):
@@ -128,6 +131,9 @@ def test__training_step__epoch_end__log(tmpdir):
     assert pbar_metrics == {"b"}
 
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a"})
+    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
 @pytest.mark.parametrize(["batches", "log_interval", "max_epochs"], [(1, 1, 1), (64, 32, 2)])
@@ -169,6 +175,9 @@ def test__training_step__step_end__epoch_end__log(tmpdir, batches, log_interval,
     assert pbar_metrics == {"c", "b_epoch", "b_step"}
 
     assert set(trainer.callback_metrics) == (logged_metrics | pbar_metrics | {"a", "b"})
+    assert all(isinstance(v, torch.Tensor) for v in trainer.callback_metrics.values())
+    assert all(isinstance(v, torch.Tensor) for v in trainer.logged_metrics.values())
+    assert all(isinstance(v, float) for v in trainer.progress_bar_metrics.values())
 
 
 @pytest.mark.parametrize(
@@ -279,16 +288,6 @@ def test_log_works_in_train_callback(tmpdir):
                 pl_module, "on_train_epoch_start", on_steps=[False], on_epochs=[True], prob_bars=self.choices
             )
 
-        def on_batch_start(self, _, pl_module, *__):
-            self.make_logging(
-                pl_module, "on_batch_start", on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
-            )
-
-        def on_batch_end(self, _, pl_module):
-            self.make_logging(
-                pl_module, "on_batch_end", on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
-            )
-
         def on_train_batch_start(self, _, pl_module, *__):
             self.make_logging(
                 pl_module, "on_train_batch_start", on_steps=self.choices, on_epochs=self.choices, prob_bars=self.choices
@@ -338,8 +337,6 @@ def test_log_works_in_train_callback(tmpdir):
         "on_train_epoch_start": 1,
         "on_train_batch_start": 2,
         "on_train_batch_end": 2,
-        "on_batch_start": 2,
-        "on_batch_end": 2,
         "on_train_epoch_end": 1,
         "on_epoch_end": 1,
     }
@@ -521,14 +518,11 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
             self.log("on_train_batch_end", 3)
 
-        def on_batch_end(self, trainer, pl_module):
-            self.log("on_batch_end", 4)
-
         def on_epoch_end(self, trainer, pl_module):
-            self.log("on_epoch_end", 5)
+            self.log("on_epoch_end", 4)
 
         def on_train_epoch_end(self, trainer, pl_module):
-            self.log("on_train_epoch_end", 6)
+            self.log("on_train_epoch_end", 5)
 
     model = BoringModel()
     trainer = Trainer(
@@ -545,9 +539,8 @@ def test_logging_in_callbacks_with_log_function(tmpdir):
         "on_train_start": 1,
         "on_train_epoch_start": 2,
         "on_train_batch_end": 3,
-        "on_batch_end": 4,
-        "on_epoch_end": 5,
-        "on_train_epoch_end": 6,
+        "on_epoch_end": 4,
+        "on_train_epoch_end": 5,
     }
     assert trainer.callback_metrics == expected
 
