@@ -41,11 +41,10 @@ def test_xla_stats_monitor(tmpdir):
         default_root_dir=tmpdir,
         max_epochs=2,
         limit_train_batches=5,
-        tpu_cores=8,
+        accelerator="tpu",
+        devices=8,
         callbacks=[xla_stats],
-        logger=DebugLogger(tmpdir),
-        enable_checkpointing=False,
-        enable_progress_bar=False,
+        logger=logger,
     )
     trainer.fit(model)
 
@@ -58,7 +57,9 @@ def test_xla_stats_monitor_no_logger(tmpdir):
     with pytest.deprecated_call(match="The `XLAStatsMonitor` callback was deprecated in v1.5"):
         xla_stats = XLAStatsMonitor()
 
-    trainer = Trainer(default_root_dir=tmpdir, callbacks=[xla_stats], max_epochs=1, tpu_cores=[1], logger=False)
+    trainer = Trainer(
+        default_root_dir=tmpdir, callbacks=[xla_stats], max_epochs=1, accelerator="tpu", devices=[1], logger=False
+    )
 
     with pytest.raises(MisconfigurationException, match="Trainer that has no logger."):
         trainer.fit(model)
