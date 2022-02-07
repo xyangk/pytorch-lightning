@@ -161,7 +161,6 @@ class Strategy(ABC):
         Args:
             closure_loss: a tensor holding the loss value to backpropagate
         """
-        self.pre_backward(closure_loss)
         closure_loss = self.precision_plugin.pre_backward(self.lightning_module, closure_loss)
 
         self.precision_plugin.backward(self.lightning_module, closure_loss, *args, **kwargs)
@@ -289,9 +288,6 @@ class Strategy(ABC):
     def reduce_boolean_decision(self, decision: bool) -> bool:
         """Reduce the early stopping decision across all processes."""
         return decision
-
-    def pre_backward(self, closure_loss: torch.Tensor) -> None:
-        """Run before precision plugin executes backward."""
 
     def post_backward(self, closure_loss: torch.Tensor) -> None:
         """Run after precision plugin executes backward."""
