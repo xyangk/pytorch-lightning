@@ -30,7 +30,7 @@ class BoringModel(LightningModule):
         loss = self(batch).sum()
         self.log("train_loss", loss)
 
-        assert all(param.device.type == "cuda" for param in self.optimizers().optimizer.param_groups[0])
+        assert all(param.device.type == "cuda" for param in self.optimizers().optimizer.param_groups[0].values())
         return {"loss": loss}
 
     def configure_optimizers(self):
