@@ -54,7 +54,7 @@ def run():
         max_epochs=1,
         num_sanity_val_steps=0,
         accelerator="gpu",
-        devices=1,
+        devices=[5],
         strategy="ddp",
     )
     trainer.fit(model, train_dataloaders=train_data, val_dataloaders=val_data)
