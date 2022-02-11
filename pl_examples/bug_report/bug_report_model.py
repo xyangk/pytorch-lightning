@@ -61,7 +61,7 @@ def run():
 
     params_after = list(param.clone() for param in model.parameters())
     for p_before, p_after in zip(params_before, params_after):
-        assert torch.not_equal(p_before, p_after)
+        assert torch.not_equal(p_before, p_after).all()
 
 
 if __name__ == "__main__":
