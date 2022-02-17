@@ -35,7 +35,7 @@ class BoringModelGPU(BoringModel):
 
 @RunIf(skip_windows=True, min_gpus=2, standalone=True)
 def test_ddp_with_2_gpus():
-    """Tests if device is set correctely when training and after teardown for DDPStrategy."""
+    """Tests if device is set correctly when training and after teardown for DDPStrategy."""
     trainer = Trainer(gpus=2, strategy="ddp", fast_dev_run=True)
     # assert training type plugin attributes for device setting
     assert isinstance(trainer.strategy, DDPStrategy)
@@ -127,3 +127,24 @@ def test_ddp_configure_ddp():
     trainer.strategy.setup(trainer)
     # in DDPStrategy configure_ddp(), model are still LightningModule
     assert isinstance(trainer.model, LightningModule)
+
+
+class CheckOptimizerDeviceModel(BoringModel):
+    def configure_optimizers(self):
+        assert all(param.device.type == "cuda" for param in self.parameters())
+        super().configure_optimizers()
+
+
+@RunIf(min_gpus=1)
+@pytest.mark.parametrize("strategy", ("ddp", "ddp_spawn"))
+def test_model_parameters_on_device_for_optimizer(strategy):
+    """Test that the strategy has moved the parameters to the device by the time the optimizer gets created."""
+    model = CheckOptimizerDeviceModel()
+    trainer = Trainer(
+        default_root_dir=os.getcwd(),
+        fast_dev_run=1,
+        accelerator="gpu",
+        devices=1,
+        strategy=strategy,
+    )
+    trainer.fit(model)
