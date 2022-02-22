@@ -20,11 +20,9 @@ from typing import Any, Dict, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities import _module_available
+from pytorch_lightning.utilities.imports import _TESTTUBE_AVAILABLE
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation, rank_zero_only, rank_zero_warn
-
-_TESTTUBE_AVAILABLE = _module_available("test_tube")
 
 if _TESTTUBE_AVAILABLE:
     from test_tube import Experiment

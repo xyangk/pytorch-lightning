@@ -23,20 +23,18 @@ from time import time
 from typing import Any, Dict, Optional, Union
 
 from pytorch_lightning.loggers.base import LightningLoggerBase, rank_zero_experiment
-from pytorch_lightning.utilities.imports import _module_available
+from pytorch_lightning.utilities.imports import _MLFLOW_AVAILABLE
 from pytorch_lightning.utilities.logger import _add_prefix, _convert_params, _flatten_dict
 from pytorch_lightning.utilities.rank_zero import rank_zero_only, rank_zero_warn
 
 log = logging.getLogger(__name__)
 LOCAL_FILE_URI_PREFIX = "file:"
-_MLFLOW_AVAILABLE = _module_available("mlflow")
-try:
+
+if _MLFLOW_AVAILABLE:
     import mlflow
     from mlflow.tracking import context, MlflowClient
     from mlflow.utils.mlflow_tags import MLFLOW_RUN_NAME
-# todo: there seems to be still some remaining import error with Conda env
-except ModuleNotFoundError:
-    _MLFLOW_AVAILABLE = False
+else:
     mlflow, MlflowClient, context = None, None, None
     MLFLOW_RUN_NAME = "mlflow.runName"
 
