@@ -9,8 +9,8 @@ from typing import Any, Callable, Dict, List, Set, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.plugins.environments import SLURMEnvironment
-from pytorch_lightning.utilities.distributed import rank_zero_info
 from pytorch_lightning.utilities.imports import _fault_tolerant_training, _IS_WINDOWS
+from pytorch_lightning.utilities.rank_zero import rank_zero_info
 
 # copied from signal.pyi
 _SIGNUM = Union[int, signal.Signals]
@@ -101,7 +101,7 @@ class SignalConnector:
         log.info("bypassing sigterm")
 
     def teardown(self) -> None:
-        """Restores the signals that were previsouly configured before :class:`SignalConnector` replaced them."""
+        """Restores the signals that were previously configured before :class:`SignalConnector` replaced them."""
         for signum, handler in self._original_handlers.items():
             if handler is not None:
                 self._register_signal(signum, handler)
