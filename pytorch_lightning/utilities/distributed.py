@@ -194,6 +194,7 @@ def all_gather_ddp_if_available(
     """
     if not distributed_available():
         return tensor
+    tensor = tensor.contiguous()  # required by all-to-all
     with nullcontext() if sync_grads else torch.no_grad():
         gathered_tensors = distributed_nn.functional.all_gather(tensor, group=group)
     return torch.stack(gathered_tensors)

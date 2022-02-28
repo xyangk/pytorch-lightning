@@ -27,6 +27,7 @@ import torch
 
 from pytorch_lightning.utilities.exceptions import MisconfigurationException
 from pytorch_lightning.utilities.imports import _compare_version, _TORCHTEXT_LEGACY
+from pytorch_lightning.utilities.types import _DEVICE
 from pytorch_lightning.utilities.warnings import rank_zero_deprecation
 
 if _TORCHTEXT_LEGACY:
@@ -252,7 +253,7 @@ class TransferableDataType(ABC):
         return NotImplemented
 
 
-def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
+def move_data_to_device(batch: Any, device: _DEVICE) -> Any:
     """Transfers a collection of data to the given device. Any object that defines a method ``to(device)`` will be
     moved and all other objects in the collection will be left untouched.
 
@@ -301,12 +302,7 @@ def move_data_to_device(batch: Any, device: Union[str, torch.device]) -> Any:
     return apply_to_collection(batch, dtype=dtype, function=batch_to)
 
 
-def convert_to_tensors(data: Any, device: Union[str, torch.device]) -> Any:
+def convert_to_tensors(data: Any, device: _DEVICE) -> Any:
     for src_dtype, conversion_func in CONVERSION_DTYPES:
         data = apply_to_collection(data, src_dtype, conversion_func, device=device)
-
-    def _move_to_device_and_make_contiguous(t: torch.Tensor, device: Union[str, torch.device]) -> torch.Tensor:
-        return t.to(device).contiguous()
-
-    data = apply_to_collection(data, torch.Tensor, _move_to_device_and_make_contiguous, device=device)
-    return data
+    return move_data_to_device(data, device)
