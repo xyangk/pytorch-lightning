@@ -21,16 +21,17 @@ import pytorch_lightning as pl
 from pytorch_lightning.plugins.io.checkpoint_plugin import CheckpointIO
 from pytorch_lightning.plugins.precision import PrecisionPlugin
 from pytorch_lightning.strategies.strategy import Strategy
-from pytorch_lightning.utilities import _XLA_AVAILABLE
 from pytorch_lightning.utilities.types import _DEVICE
 
 
 class SingleDeviceStrategy(Strategy):
     """Strategy that handles communication on a single device."""
 
+    strategy_name = "single_device"
+
     def __init__(
         self,
-        device: _DEVICE,
+        device: _DEVICE = "cpu",
         accelerator: pl.accelerators.accelerator.Accelerator | None = None,
         checkpoint_io: CheckpointIO | None = None,
         precision_plugin: PrecisionPlugin | None = None,
@@ -40,14 +41,6 @@ class SingleDeviceStrategy(Strategy):
         self.global_rank = 0
         self.local_rank = 0
         self.world_size = 1
-
-    @property
-    def on_tpu(self) -> bool:
-        return self.root_device.type == "xla" and _XLA_AVAILABLE
-
-    @property
-    def on_gpu(self) -> bool:
-        return self.root_device.type == "cuda" and torch.cuda.is_available()
 
     def reduce(self, tensor: Any | torch.Tensor, *args: Any, **kwargs: Any) -> Any | torch.Tensor:
         """Reduces a tensor from several distributed processes to one aggregated tensor. As this plugin only
@@ -88,9 +81,17 @@ class SingleDeviceStrategy(Strategy):
     def broadcast(self, obj: object, src: int = 0) -> object:
         return obj
 
+    @classmethod
+    def register_strategies(cls, strategy_registry: dict) -> None:
+        strategy_registry.register(
+            cls.strategy_name,
+            cls,
+            description=f"{cls.__class__.__name__}",
+        )
+
     def teardown(self) -> None:
         super().teardown()
-        if self.on_gpu:
+        if self.root_device.type == "cuda":
             # GPU teardown
             self.lightning_module.cpu()
             # clean up memory

@@ -15,7 +15,8 @@ from typing import Any, Dict, Optional, Union
 
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import Callback
-from pytorch_lightning.utilities import rank_zero_warn
+from pytorch_lightning.utilities.logger import _version
+from pytorch_lightning.utilities.rank_zero import rank_zero_warn
 
 
 class ProgressBarBase(Callback):
@@ -105,6 +106,9 @@ class ProgressBarBase(Callback):
         Use this to set the total number of iterations in the progress bar. Can return ``inf`` if the validation
         dataloader is of infinite size.
         """
+        if self.trainer.sanity_checking:
+            return sum(self.trainer.num_sanity_val_batches)
+
         total_val_batches = 0
         if self.trainer.enable_validation:
             is_val_epoch = (self.trainer.current_epoch + 1) % self.trainer.check_val_every_n_epoch == 0
@@ -131,11 +135,7 @@ class ProgressBarBase(Callback):
         return sum(self.trainer.num_predict_batches)
 
     def disable(self) -> None:
-        """You should provide a way to disable the progress bar.
-
-        The :class:`~pytorch_lightning.trainer.trainer.Trainer` will call this to disable the
-        output on processes that have a rank different from 0, e.g., in multi-node training.
-        """
+        """You should provide a way to disable the progress bar."""
         raise NotImplementedError
 
     def enable(self) -> None:
@@ -153,6 +153,8 @@ class ProgressBarBase(Callback):
 
     def setup(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule", stage: Optional[str] = None) -> None:
         self._trainer = trainer
+        if not trainer.is_global_zero:
+            self.disable()
 
     def get_metrics(self, trainer: "pl.Trainer", pl_module: "pl.LightningModule") -> Dict[str, Union[int, str]]:
         r"""
@@ -212,11 +214,12 @@ def get_standard_metrics(trainer: "pl.Trainer", pl_module: "pl.LightningModule")
     if pl_module.truncated_bptt_steps > 0:
         items_dict["split_idx"] = trainer.fit_loop.split_idx
 
-    if trainer.logger is not None and trainer.logger.version is not None:
-        version = trainer.logger.version
-        if isinstance(version, str):
-            # show last 4 places of long version strings
-            version = version[-4:]
-        items_dict["v_num"] = version
+    if trainer.loggers:
+        version = _version(trainer.loggers)
+        if version is not None:
+            if isinstance(version, str):
+                # show last 4 places of long version strings
+                version = version[-4:]
+            items_dict["v_num"] = version
 
     return items_dict
