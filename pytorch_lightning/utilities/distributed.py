@@ -154,10 +154,10 @@ class AllGatherGrad(torch.autograd.Function):
         tensor: torch.Tensor,
         group: Optional["torch.distributed.ProcessGroup"] = group.WORLD,
     ) -> torch.Tensor:
-        from pytorch_lightning.utilities.warnings import rank_zero_deprecation
+        from pytorch_lightning.utilities.rank_zero import rank_zero_deprecation
 
         rank_zero_deprecation(
-            "`AllGatherGrad` has been deprecated in v1.6 and will be removed in v1.8."
+            "`AllGatherGrad` has been deprecated in v1.7 and will be removed in v1.9."
             " Use `torch.distributed.all_gather` instead."
         )
 
