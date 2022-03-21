@@ -50,6 +50,8 @@ class ApexMixedPrecisionPlugin(MixedPrecisionPlugin):
     ) -> Tuple[Module, List[Optimizer], List[Any]]:
         """Connects this plugin to the accelerator and the training process."""
         if not self._connected:
+            # amp.initialize should 1) only be called once 2) be called before wrapping the model with e.g.
+            # DistributedDataParallel
             _, optimizers = amp.initialize(model, optimizers, opt_level=self.amp_level)
             self._connected = True
         return model, optimizers, lr_schedulers
