@@ -1314,8 +1314,6 @@ class Trainer(
 
     def _run_stage(self):
         self.strategy.barrier("run-stage")
-        self.strategy.dispatch(self)
-
         if self.evaluating:
             return self._run_evaluate()
         if self.predicting:
