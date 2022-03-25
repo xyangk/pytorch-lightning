@@ -94,12 +94,11 @@ references:
        echo "Done waiting. Job status code: $status_code" && \
        pod_name=$(kubectl get po -l controller-uid=`kubectl get job $job_name -o "jsonpath={.metadata.labels.controller-uid}"` | awk 'match($0,!/NAME/) {print $1}') && \
        echo "GKE pod name: $pod_name" && \
-       kubectl logs -f $pod_name --container=train > /tmp/full_output.txt 2> /tmp/full_error.txt
+       kubectl logs -f $pod_name --container=train > /tmp/full_output.txt
        if grep -q '<?xml version="1.0" ?>' /tmp/full_output.txt ; then csplit /tmp/full_output.txt '/<?xml version="1.0" ?>/'; else mv /tmp/full_output.txt xx00; fi && \
        # First portion is the test logs. Print these to Github Action stdout.
        cat xx00 && \
        echo "Done with log retrieval attempt." && \
-       cat /tmp/full_error.txt && \
        exit $status_code
 
   stats: &stats
