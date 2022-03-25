@@ -44,7 +44,7 @@ def test_xla_stats_monitor(tmpdir):
         accelerator="tpu",
         devices=8,
         callbacks=[xla_stats],
-        logger=logger,
+        logger=DebugLogger(tmpdir),
     )
     trainer.fit(model)
 
