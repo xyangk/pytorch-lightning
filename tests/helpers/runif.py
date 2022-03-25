@@ -151,8 +151,10 @@ class RunIf:
             kwargs["tpu"] = True
 
         if ipu:
-            conditions.append(not _IPU_AVAILABLE)
+            env_flag = os.getenv("PL_RUN_IPU_TESTS", "0")
+            conditions.append(env_flag != "1" or not _IPU_AVAILABLE)
             reasons.append("IPU")
+            kwargs["ipu"] = True
 
         if horovod:
             conditions.append(not _HOROVOD_AVAILABLE)

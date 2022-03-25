@@ -59,7 +59,6 @@ from pytorch_lightning.strategies import (
     DeepSpeedStrategy,
     HorovodStrategy,
     IPUStrategy,
-    ParallelStrategy,
     SingleDeviceStrategy,
     SingleTPUStrategy,
     Strategy,
@@ -775,18 +774,6 @@ class AcceleratorConnector:
     """The following properties are here for backward-compatibility and will be deprecated and removed in favor
     of accessing this information through the strategy/accelerator directly."""
     # TODO: deprecate all properties below
-
-    @property
-    def parallel_devices(self) -> List[Union[torch.device, int]]:
-        return self._parallel_devices
-
-    @property
-    def devices(self) -> int:
-        if isinstance(self.strategy, SingleDeviceStrategy):
-            return 1
-        elif isinstance(self.strategy, ParallelStrategy):
-            return len(self.strategy.parallel_devices)
-        return 0
 
     @property
     def tpu_cores(self) -> Optional[Union[List[int], int]]:
