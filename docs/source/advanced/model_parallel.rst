@@ -718,7 +718,7 @@ DDP Optimizations
 ^^^^^^^^^^^^^^^^^
 
 
-When using DDP Plugins, set find_unused_parameters=False
+When using DDP strategies, set find_unused_parameters=False
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 By default, we have set ``find_unused_parameters=True`` for compatibility reasons that have been observed in the past (see the `discussion <https://github.com/PyTorchLightning/pytorch-lightning/discussions/6219>`_ for more details).
