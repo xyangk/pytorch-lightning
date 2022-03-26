@@ -94,8 +94,7 @@ references:
        echo "Done waiting. Job status code: $status_code" && \
        pod_name=$(kubectl get po -l controller-uid=`kubectl get job $job_name -o "jsonpath={.metadata.labels.controller-uid}"` | awk 'match($0,!/NAME/) {print $1}') && \
        echo "GKE pod name: $pod_name" && \
-       kubectl logs -f $pod_name --container=train > /tmp/full_output.txt
-       cat /tmp/full_output.txt
+       kubectl logs -f $pod_name --container=train
        echo "Done with log retrieval attempt."
        exit $status_code
 
