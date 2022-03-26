@@ -81,6 +81,8 @@ references:
        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet | kubectl create -f -) && \
        job_name=${job_name#job.batch/}
        job_name=${job_name% created}
+       pod_name=$(kubectl get po -l controller-uid=`kubectl get job $job_name -o "jsonpath={.metadata.labels.controller-uid}"` | awk 'match($0,!/NAME/) {print $1}')
+       echo "GKE pod name: $pod_name"
        echo "Waiting on kubernetes job: $job_name"
        i=0 && \
        # N checks spaced 30s apart = 900s total.
@@ -95,6 +97,8 @@ references:
        pod_name=$(kubectl get po -l controller-uid=`kubectl get job $job_name -o "jsonpath={.metadata.labels.controller-uid}"` | awk 'match($0,!/NAME/) {print $1}') && \
        echo "GKE pod name: $pod_name" && \
        kubectl logs -f $pod_name --container=train
+       kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}'
+       kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}'
        echo "Done with log retrieval attempt."
        exit $status_code
 
