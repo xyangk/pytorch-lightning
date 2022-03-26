@@ -302,7 +302,7 @@ def test_setup_dataloaders_replace_standard_sampler(shuffle, strategy):
     [
         ("cpu", torch.device("cpu")),
         pytest.param("gpu", torch.device("cuda", 0), marks=RunIf(min_gpus=1)),
-        pytest.param("tpu", torch.device("xla", 1), marks=RunIf(tpu=True)),
+        pytest.param("tpu", torch.device("xla", 0), marks=RunIf(tpu=True)),
     ],
 )
 def test_to_device(accelerator, expected):
