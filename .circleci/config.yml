@@ -82,7 +82,6 @@ references:
        job_name=${job_name#job.batch/}
        job_name=${job_name% created}
        echo "Waiting on kubernetes job: $job_name"
-       kubectl logs -f $pod_name --container=train &  # dump logs to stdout in the background
        i=0 && \
        # N checks spaced 30s apart = 900s total.
        status_code=2 && \
@@ -94,7 +93,8 @@ references:
        while [ $i -lt $MAX_CHECKS ]; do ((i++)); if kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}' | grep "Failed:1"; then status_code=1 && break; elif kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}' | grep "Succeeded:1" ; then status_code=0 && break; else printf "."; fi; sleep $CHECK_SPEEP; done && \
        echo "Done waiting. Job status code: $status_code" && \
        pod_name=$(kubectl get po -l controller-uid=`kubectl get job $job_name -o "jsonpath={.metadata.labels.controller-uid}"` | awk 'match($0,!/NAME/) {print $1}') && \
-       echo "GKE pod name: $pod_name"
+       echo "GKE pod name: $pod_name" && \
+       kubectl logs -f $pod_name --container=train
        echo "Done with log retrieval attempt."
        exit $status_code
 
