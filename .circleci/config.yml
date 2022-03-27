@@ -75,7 +75,7 @@ references:
   deploy_cluster: &deploy_cluster
    run:
      name: Deploy the job on the kubernetes cluster
-     no_output_timeout: 100m
+     no_output_timeout: 100m  # by default, the job terminates after 10min of no output.
      command: |
        export PATH=$PATH:$HOME/go/bin
        job_name=$(jsonnet -J ml-testing-accelerators/ dockers/tpu-tests/tpu_test_cases.jsonnet | kubectl create -f -) && \
