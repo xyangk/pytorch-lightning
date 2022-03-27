@@ -95,8 +95,6 @@ references:
        while [ $i -lt $MAX_CHECKS ]; do ((i++)); if kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}' | grep "Failed:1"; then status_code=1 && break; elif kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}' | grep "Succeeded:1" ; then status_code=0 && break; else printf "."; fi; sleep $CHECK_SPEEP; done && \
        echo "Done waiting. Job status code: $status_code" && \
        kubectl logs -f $pod_name --container=train
-       kubectl get jobs $job_name -o jsonpath='Failed:{.status.failed}'
-       kubectl get jobs $job_name -o jsonpath='Succeeded:{.status.succeeded}'
        echo "Done with log retrieval attempt."
        exit $status_code
 
