@@ -650,6 +650,7 @@ class DeepSpeedStrategy(DDPStrategy):
         return batch_size
 
     def _format_precision_config(self) -> None:
+        print("debug prec", self.precision_plugin, self.precision_plugin.amp_type)
         if self.precision_plugin.precision in (PrecisionType.HALF, PrecisionType.MIXED):
             if "fp16" not in self.config and self.precision_plugin.amp_type == AMPType.NATIVE:
                 # FP16 is a DeepSpeed standalone AMP implementation
