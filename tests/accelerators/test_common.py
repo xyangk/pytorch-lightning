@@ -13,6 +13,8 @@
 # limitations under the License.
 from unittest import mock
 
+import pytest
+
 from pytorch_lightning import Trainer
 from pytorch_lightning.accelerators import Accelerator, CPUAccelerator, GPUAccelerator, IPUAccelerator, TPUAccelerator
 from pytorch_lightning.strategies import DDPStrategy
@@ -57,3 +59,14 @@ def test_pluggable_accelerator():
     assert isinstance(trainer.accelerator, TestAccelerator)
     assert isinstance(trainer.strategy, DDPStrategy)
     assert trainer.strategy.parallel_devices == ["foo"] * 3
+
+
+@mock.patch("pytorch_lightning.accelerators.gpu.GPUAccelerator.is_available", return_value=True)
+@mock.patch("torch.cuda.device_count", return_value=2)
+@pytest.mark.parametrize(["accelerator", "accelerator_cls"], [("CPU", CPUAccelerator), ("GPU", GPUAccelerator)])
+def test_accelerator_str_passed_being_case_insensitive(
+    accelerator_mock_available, device_count_mock, accelerator, accelerator_cls
+):
+
+    trainer = Trainer(accelerator=accelerator)
+    assert isinstance(trainer.accelerator, accelerator_cls)

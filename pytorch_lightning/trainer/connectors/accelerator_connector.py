@@ -247,6 +247,9 @@ class AcceleratorConnector:
         if isinstance(strategy, str):
             strategy = strategy.lower()
 
+        if isinstance(accelerator, str):
+            accelerator = accelerator.lower()
+
         if strategy is not None:
             self._strategy_flag = strategy
             if strategy == "ddp_cpu":
