@@ -146,7 +146,6 @@ class Trainer(
         tpu_cores: Optional[Union[List[int], str, int]] = None,
         ipus: Optional[int] = None,
         log_gpu_memory: Optional[str] = None,  # TODO: Remove in 1.7
-        progress_bar_refresh_rate: Optional[int] = None,  # TODO: remove in v1.7
         enable_progress_bar: bool = True,
         overfit_batches: Union[int, float] = 0.0,
         track_grad_norm: Union[int, float, str] = -1,
@@ -331,16 +330,6 @@ class Trainer(
                     Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``process_position``
                     directly to the Trainer's ``callbacks`` argument instead.
 
-            progress_bar_refresh_rate: How often to refresh progress bar (in steps). Value ``0`` disables progress bar.
-                Ignored when a custom progress bar is passed to :paramref:`~Trainer.callbacks`. Default: None, means
-                a suitable value will be chosen based on the environment (terminal, Google COLAB, etc.).
-
-                .. deprecated:: v1.5
-                    ``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
-                    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``refresh_rate``
-                    directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
-                    pass ``enable_progress_bar = False`` to the Trainer.
-
             enable_progress_bar: Whether to enable to progress bar by default.
                 Default: ``False``.
 
@@ -401,7 +390,7 @@ class Trainer(
                     Please pass the path to ``Trainer.fit(..., ckpt_path=...)`` instead.
 
             strategy: Supports different training strategies with aliases
-                as well custom training type plugins.
+                as well custom strategies.
                 Default: ``None``.
 
             sync_batchnorm: Synchronize batch norm layers between process groups/whole world.
@@ -546,7 +535,6 @@ class Trainer(
             checkpoint_callback,
             enable_checkpointing,
             enable_progress_bar,
-            progress_bar_refresh_rate,
             process_position,
             default_root_dir,
             weights_save_path,
@@ -1152,7 +1140,7 @@ class Trainer(
         if hasattr(model, "hparams"):
             parsing.clean_namespace(model.hparams)
 
-        # attach model to the training type plugin
+        # attach model to the strategy
         self.strategy.connect(model)
 
         self._callback_connector._attach_model_callbacks()
@@ -2035,17 +2023,17 @@ class Trainer(
 
     @property
     def local_rank(self) -> int:
-        # some training types define a local rank
+        # some strategies define a local rank
         return getattr(self.strategy, "local_rank", 0)
 
     @property
     def node_rank(self) -> int:
-        # some training types define a node rank
+        # some strategies define a node rank
         return getattr(self.strategy, "node_rank", 0)
 
     @property
     def world_size(self) -> int:
-        # some training types define a world size
+        # some strategies define a world size
         return getattr(self.strategy, "world_size", 1)
 
     @property

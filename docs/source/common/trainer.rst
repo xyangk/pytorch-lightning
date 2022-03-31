@@ -736,9 +736,6 @@ See Also:
 gpus
 ^^^^
 
-.. warning:: Setting `Trainer(gpus=x)` is deprecated in v1.6 and will be removed
-    in v2.0. Please use `Trainer(accelerator="gpu", devices=x)` instead.
-
 .. raw:: html
 
     <video width="50%" max-width="400px" controls
@@ -1309,37 +1306,6 @@ See the :doc:`profiler documentation <../advanced/profiler>`. for more details.
     # advanced profiler for function-level stats, equivalent to `profiler=AdvancedProfiler()`
     trainer = Trainer(profiler="advanced")
 
-progress_bar_refresh_rate
-^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. warning:: ``progress_bar_refresh_rate`` has been deprecated in v1.5 and will be removed in v1.7.
-    Please pass :class:`~pytorch_lightning.callbacks.progress.TQDMProgressBar` with ``refresh_rate``
-    directly to the Trainer's ``callbacks`` argument instead. To disable the progress bar,
-    pass ``enable_progress_bar = False`` to the Trainer.
-
-.. raw:: html
-
-    <video width="50%" max-width="400px" controls
-    poster="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/thumb/progress_bar%E2%80%A8_refresh_rate.jpg"
-    src="https://pl-bolts-doc-images.s3.us-east-2.amazonaws.com/pl_docs/trainer_flags/progress_bar_refresh_rate.mp4"></video>
-
-|
-
-How often to refresh progress bar (in steps).
-
-.. testcode::
-
-    # default used by the Trainer
-    trainer = Trainer(progress_bar_refresh_rate=1)
-
-    # disable progress bar
-    trainer = Trainer(progress_bar_refresh_rate=0)
-
-Note:
-    - In Google Colab notebooks, faster refresh rates (lower number) is known to crash them because of their screen refresh rates.
-      Lightning will set it to 20 in these environments if the user does not provide a value.
-    - This argument is ignored if a custom callback is passed to :paramref:`~Trainer.callbacks`.
-
 enable_progress_bar
 ^^^^^^^^^^^^^^^^^^^
 
@@ -1448,7 +1414,7 @@ checkpoint, training will start from the beginning of the next epoch.
 strategy
 ^^^^^^^^
 
-Supports passing different training strategies with aliases (ddp, ddp_spawn, etc) as well as custom training type plugins.
+Supports passing different training strategies with aliases (ddp, ddp_spawn, etc) as well as custom strategies.
 
 .. code-block:: python
 
@@ -1458,7 +1424,7 @@ Supports passing different training strategies with aliases (ddp, ddp_spawn, etc
     # Training with the DDP Spawn strategy using 4 cpu processes
     trainer = Trainer(strategy="ddp_spawn", accelerator="cpu", devices=4)
 
-.. note:: Additionally, you can pass your custom training type plugins to the ``strategy`` argument.
+.. note:: Additionally, you can pass your custom strategy to the ``strategy`` argument.
 
 .. code-block:: python
 
