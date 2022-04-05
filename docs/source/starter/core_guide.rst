@@ -596,8 +596,7 @@ will cause all sorts of issues.
 To solve this problem, make sure your download code is in the ``prepare_data`` method in the DataModule.
 In this method we do all the preparation we need to do once (instead of on every GPU).
 
-``prepare_data`` can be called in two ways, once per node or only on the root node
-(``Trainer(prepare_data_per_node=False)``).
+``prepare_data`` can be called in two ways, once per node or only on the root node.
 
 .. code-block:: python
 
@@ -645,7 +644,7 @@ Now we can train the LightningModule on a TPU without doing anything else!
 
     dm = MNISTDataModule()
     model = LitMNIST()
-    trainer = Trainer(tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
     trainer.fit(model, dm)
 
 You'll now see the TPU cores booting up.
@@ -688,7 +687,7 @@ Now we can train with a validation loop as well.
     from pytorch_lightning import Trainer
 
     model = LitMNIST()
-    trainer = Trainer(tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
     trainer.fit(model, train_loader, val_loader)
 
 You may have noticed the words **Validation sanity check** logged. This is because Lightning runs 2 batches
@@ -768,7 +767,7 @@ Once you train your model simply call ``.test()``.
     from pytorch_lightning import Trainer
 
     model = LitMNIST()
-    trainer = Trainer(tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
     trainer.fit(model)
 
     # run test set
@@ -791,7 +790,7 @@ You can also run the test from a saved lightning model
 .. code-block:: python
 
     model = LitMNIST.load_from_checkpoint(PATH)
-    trainer = Trainer(tpu_cores=8)
+    trainer = Trainer(accelerator="tpu", devices=8)
     trainer.test(model)
 
 .. note:: Lightning disables gradients, puts model in eval mode, and does everything needed for testing.

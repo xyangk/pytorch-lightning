@@ -155,7 +155,9 @@ jobs:
 
 workflows:
   version: 2
-  ci-tests:
+  build-docs:
     jobs:
       - build-Docs
+  test-on-tpus:
+    jobs:
       - TPU-tests
