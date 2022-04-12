@@ -16,6 +16,7 @@ Accelerator API
     Accelerator
     CPUAccelerator
     GPUAccelerator
+    HPUAccelerator
     IPUAccelerator
     TPUAccelerator
 
@@ -59,9 +60,11 @@ Strategy API
     DataParallelStrategy
     DeepSpeedStrategy
     HorovodStrategy
+    HPUParallelStrategy
     IPUStrategy
     ParallelStrategy
     SingleDeviceStrategy
+    SingleHPUStrategy
     SingleTPUStrategy
     Strategy
     TPUSpawnStrategy
@@ -82,7 +85,6 @@ Callbacks API
     Callback
     DeviceStatsMonitor
     EarlyStopping
-    GPUStatsMonitor
     GradientAccumulationScheduler
     LambdaCallback
     LearningRateMonitor
@@ -198,6 +200,7 @@ Precision Plugins
     DeepSpeedPrecisionPlugin
     DoublePrecisionPlugin
     FullyShardedNativeMixedPrecisionPlugin
+    HPUPrecisionPlugin
     IPUPrecisionPlugin
     MixedPrecisionPlugin
     NativeMixedPrecisionPlugin
@@ -234,6 +237,7 @@ Checkpoint IO Plugins
     :template: classtemplate.rst
 
     CheckpointIO
+    HPUCheckpointIO
     TorchCheckpointIO
     XLACheckpointIO
 
@@ -262,10 +266,9 @@ Profiler API
     :nosignatures:
     :template: classtemplate.rst
 
-    AbstractProfiler
     AdvancedProfiler
-    BaseProfiler
     PassThroughProfiler
+    Profiler
     PyTorchProfiler
     SimpleProfiler
     XLAProfiler
